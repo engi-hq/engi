@@ -1,17 +1,20 @@
 name: docs
 
-# Manual only for now: run it from the Actions tab when the site is ready to publish.
-# To re-enable automatic runs, restore the push (branches: [main]) and pull_request
-# triggers with paths: ["docs/**", ".github/workflows/docs.yml"].
+# Builds the documentation site in strict mode so broken links and pages fail the
+# check. Publishing happens in the engi-hq/docs repository, which builds these
+# same pages to https://engi-hq.github.io/docs/. When the optional
+# DOCS_DISPATCH_TOKEN secret is set (a fine-grained token with Actions: write on
+# engi-hq/docs), a docs change on main asks that repository to publish at once;
+# without it the site follows on the docs repository's own schedule.
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["docs/**", ".github/workflows/docs.yml"]
+  pull_request:
+    paths: ["docs/**", ".github/workflows/docs.yml"]
 
 permissions:
   contents: read
-
-concurrency:
-  group: pages
-  cancel-in-progress: false
 
 jobs:
   build:
@@ -24,21 +27,13 @@ jobs:
           cache: pip
           cache-dependency-path: docs/website/requirements.txt
       - run: make docs-site
-      - uses: actions/upload-pages-artifact@v3
-        if: github.event_name != 'pull_request'
-        with:
-          path: site
-
-  deploy:
-    if: github.event_name != 'pull_request'
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Ask engi-hq/docs to publish
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.DOCS_DISPATCH_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "DOCS_DISPATCH_TOKEN not set; engi-hq/docs publishes on its schedule."
+            exit 0
+          fi
+          gh workflow run publish.yml -R engi-hq/docs

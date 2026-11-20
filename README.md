@@ -124,7 +124,7 @@ The editor is React + TypeScript and ships inside the binary. Read the
 
 ## Documentation
 
-The full documentation is at **<https://engi-hq.github.io/engi/>**. The same pages are in [`docs/`](docs/README.md).
+The full documentation is at **<https://engi-hq.github.io/docs/>**. The same pages are in [`docs/`](docs/README.md).
 
 - [Vision & principles](docs/01-vision.md)
 - [Architecture](docs/02-architecture.md) · [Data model](docs/03-data-model.md) · [Execution engine](docs/04-engine.md)

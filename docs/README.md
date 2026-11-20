@@ -44,6 +44,6 @@ How a run moves through Engi is explained in [Architecture §2.4](02-architectur
 | 15 | [Plugins](15-plugins.md) | Plugin Protocol v1, manifest, install, SDKs, Python Code node |
 | - | [Node Reference](nodes/README.md) | Per-node parameters, ports and credentials, generated from the descriptors |
 
-These pages are also published as a website: <https://engi-hq.github.io/engi/>.
+These pages are also published as a website: <https://engi-hq.github.io/docs/>.
 
 **Next →** [Quick Start](00-quick-start.md)

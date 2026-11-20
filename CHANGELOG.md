@@ -169,7 +169,7 @@ Development started on 2026-10-17. Everything below is new since then.
 
 #### Documentation and project
 
-- Documentation site at <https://engi-hq.github.io/engi/>, with a quick start, a node
+- Documentation site at <https://engi-hq.github.io/docs/>, with a quick start, a node
   reference generated from the node descriptors, an OpenAPI reference and an architecture
   diagram.
 - Brand banners, images and a 10-second intro video.
