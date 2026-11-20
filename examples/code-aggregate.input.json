@@ -1,0 +1,27 @@
+[
+  {
+    "item": "keyboard",
+    "qty": 2,
+    "price": 49.5
+  },
+  {
+    "item": "cable",
+    "qty": 10,
+    "price": 3.25
+  },
+  {
+    "item": "monitor",
+    "qty": 1,
+    "price": 219.99
+  },
+  {
+    "item": "mouse",
+    "qty": 3,
+    "price": 19.9
+  },
+  {
+    "item": "dock",
+    "qty": 1,
+    "price": 89
+  }
+]

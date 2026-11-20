@@ -1,0 +1,130 @@
+{
+  "name": "Code and Aggregate",
+  "nodes": [
+    {
+      "name": "Start",
+      "type": "engi.trigger.manual",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "name": "Add total",
+      "type": "engi.code.javascript",
+      "typeVersion": 1,
+      "position": [
+        220,
+        200
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const total = $json.qty * $json.price;\nreturn { ...$json, total: Math.round(total * 100) / 100 };"
+      }
+    },
+    {
+      "name": "Biggest first",
+      "type": "engi.transform.sort",
+      "typeVersion": 1,
+      "position": [
+        440,
+        200
+      ],
+      "parameters": {
+        "keys": [
+          {
+            "field": "total",
+            "order": "desc",
+            "type": "number"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Top three",
+      "type": "engi.transform.limit",
+      "typeVersion": 1,
+      "position": [
+        660,
+        200
+      ],
+      "parameters": {
+        "maxItems": 3,
+        "keep": "first"
+      }
+    },
+    {
+      "name": "Collect",
+      "type": "engi.transform.aggregate",
+      "typeVersion": 1,
+      "position": [
+        880,
+        200
+      ],
+      "parameters": {
+        "mode": "individualFields",
+        "fields": [
+          {
+            "field": "item",
+            "outputName": "items"
+          },
+          {
+            "field": "total",
+            "outputName": "totals"
+          }
+        ]
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": {
+        "node": "Start",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Add total",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Add total",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Biggest first",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Biggest first",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Top three",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Top three",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Collect",
+        "port": "main",
+        "index": 0
+      }
+    }
+  ]
+}

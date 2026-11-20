@@ -1,0 +1,115 @@
+# Engi documentation site. Build: `make docs-site`, preview: `make docs-serve`.
+# Pages come from docs/ unchanged; this folder (docs/website) holds only the site tooling.
+site_name: Engi えんぎ
+site_description: Self-hosted workflow automation in a single Go binary.
+site_url: https://engi-hq.github.io/engi/
+repo_url: https://github.com/engi-hq/engi
+repo_name: engi-hq/engi
+edit_uri: edit/main/docs/
+copyright: Copyright &copy; 2026 The Engi Authors · <a href="https://github.com/engi-hq/engi/blob/main/LICENSE">Apache License 2.0</a>
+
+docs_dir: ..
+site_dir: ../../site
+strict: true
+
+# This tooling folder lives inside docs_dir; keep it out of the published site.
+exclude_docs: |
+  website/
+
+hooks:
+  - hooks.py
+
+extra_css:
+  - assets/extra.css
+
+theme:
+  name: material
+  custom_dir: overrides
+  language: en
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.footer
+    - navigation.top
+    - navigation.instant
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+    - toc.follow
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      # Same heading IDs as GitHub, so in-page links work in both places.
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+nav:
+  - Home:
+      - README.md
+      - Quick Start: 00-quick-start.md
+  - Guide:
+      - 01-vision.md
+      - 02-architecture.md
+      - 03-data-model.md
+      - 04-engine.md
+      - 05-expressions.md
+      - 06-nodes-and-plugins.md
+      - 07-data-sources.md
+      - 08-triggers.md
+      - 10-editor-ui.md
+      - 14-ai.md
+      - 15-plugins.md
+  - Node Reference:
+      - nodes/README.md
+      - nodes/01-triggers.md
+      - nodes/02-flow.md
+      - nodes/03-transform.md
+      - nodes/04-code.md
+      - nodes/05-http.md
+      - nodes/06-databases.md
+      - nodes/07-streaming.md
+      - nodes/08-storage.md
+      - nodes/09-email.md
+      - nodes/10-chat.md
+      - nodes/12-ai.md
+      - nodes/13-spreadsheets.md
+      - nodes/11-credentials.md
+  - API:
+      - 09-api.md
+      - OpenAPI Reference: api/reference.html
+  - Operate:
+      - 11-deployment.md
+  - Project:
+      - 12-roadmap.md
+      - 13-dev-guide.md
+      - Changelog: https://github.com/engi-hq/engi/blob/main/CHANGELOG.md

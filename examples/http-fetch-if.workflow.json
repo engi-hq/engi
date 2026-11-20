@@ -1,0 +1,181 @@
+{
+  "name": "HTTP fetch, IF, Set",
+  "nodes": [
+    {
+      "name": "Start",
+      "type": "engi.trigger.manual",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "name": "Fetch repo",
+      "type": "engi.http.request",
+      "typeVersion": 1,
+      "position": [
+        220,
+        200
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.url }}",
+        "headers": [
+          {
+            "name": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "responseFormat": "json"
+      }
+    },
+    {
+      "name": "Is popular?",
+      "type": "engi.flow.if",
+      "typeVersion": 1,
+      "position": [
+        440,
+        200
+      ],
+      "parameters": {
+        "conditions": [
+          {
+            "left": "={{ $json.stars }}",
+            "operator": "number:gte",
+            "right": 100
+          }
+        ]
+      }
+    },
+    {
+      "name": "Mark popular",
+      "type": "engi.transform.set",
+      "typeVersion": 1,
+      "position": [
+        660,
+        100
+      ],
+      "parameters": {
+        "fields": [
+          {
+            "name": "tier",
+            "type": "string",
+            "value": "popular"
+          },
+          {
+            "name": "summary",
+            "type": "string",
+            "value": "={{ $json.name }} has {{ $json.stars }} stars"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Mark niche",
+      "type": "engi.transform.set",
+      "typeVersion": 1,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "fields": [
+          {
+            "name": "tier",
+            "type": "string",
+            "value": "niche"
+          },
+          {
+            "name": "summary",
+            "type": "string",
+            "value": "={{ $json.name }} is still small"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Result",
+      "type": "engi.flow.noop",
+      "typeVersion": 1,
+      "position": [
+        880,
+        200
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": {
+        "node": "Start",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Fetch repo",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Fetch repo",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Is popular?",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Is popular?",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Mark popular",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Is popular?",
+        "port": "main",
+        "index": 1
+      },
+      "to": {
+        "node": "Mark niche",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Mark popular",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Result",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Mark niche",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Result",
+        "port": "main",
+        "index": 0
+      }
+    }
+  ]
+}

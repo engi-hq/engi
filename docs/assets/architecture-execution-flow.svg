@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1220" height="470" viewBox="0 0 1220 470" role="img" aria-label="How a run moves through Engi: an event reaches the webhook, trigger or api role, which creates a queued execution and enqueues a job carrying only its ID; a worker claims the job under a lease, runs the engine and its nodes against your systems, publishes progress on the bus for the api to stream to the editor, and saves the result.">
+  <title>Engi execution flow</title>
+  <style>
+    .bg      { fill: #ffffff; }
+    .box     { fill: #f6f7f9; stroke: #3b4252; stroke-width: 1.5; }
+    .group   { fill: #eef0f4; stroke: #9aa3b2; stroke-width: 1.2; stroke-dasharray: 5 4; }
+    .key     { fill: #fbeef0; stroke: #b23a48; stroke-width: 2; }
+    .t       { fill: #1f2430; font: 600 14px system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .s       { fill: #5b6475; font: 12px system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .h       { fill: #5b6475; font: 600 12px system-ui, -apple-system, "Segoe UI", sans-serif; letter-spacing: .08em; }
+    .l       { fill: #1f2430; font: 12px system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .lk      { fill: #b23a48; font: 600 12px system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .e       { stroke: #3b4252; stroke-width: 1.5; fill: none; }
+    .ek      { stroke: #b23a48; stroke-width: 2; fill: none; }
+    .ah      { fill: #3b4252; }
+    .ahk     { fill: #b23a48; }
+    @media (prefers-color-scheme: dark) {
+      .bg    { fill: #1e2129; }
+      .box   { fill: #2a2e38; stroke: #c3c9d4; }
+      .group { fill: #242832; stroke: #6b7385; }
+      .key   { fill: #3a2329; stroke: #ef7a85; }
+      .t, .l { fill: #e6e9ef; }
+      .s, .h { fill: #a3abba; }
+      .lk    { fill: #ef7a85; }
+      .e     { stroke: #c3c9d4; }
+      .ek    { stroke: #ef7a85; }
+      .ah    { fill: #c3c9d4; }
+      .ahk   { fill: #ef7a85; }
+    }
+  </style>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="ah" d="M0 0 L10 5 L0 10 z"/>
+    </marker>
+    <marker id="ak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="ahk" d="M0 0 L10 5 L0 10 z"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1220" height="470" rx="12"/>
+
+  <!-- Column headers -->
+  <text class="h" x="95"   y="40" text-anchor="middle">EVENTS</text>
+  <text class="h" x="310"  y="40" text-anchor="middle">ENGI ROLES</text>
+  <text class="h" x="655"  y="40" text-anchor="middle">SHARED STATE</text>
+  <text class="h" x="940"  y="40" text-anchor="middle">WORKERS</text>
+  <text class="h" x="1135" y="40" text-anchor="middle">YOUR SYSTEMS</text>
+
+  <!-- Events -->
+  <rect class="box" x="20" y="90"  width="150" height="56" rx="8"/>
+  <text class="t" x="95" y="114" text-anchor="middle">Webhook call</text>
+  <text class="s" x="95" y="132" text-anchor="middle">POST /webhook/…</text>
+
+  <rect class="box" x="20" y="200" width="150" height="56" rx="8"/>
+  <text class="t" x="95" y="224" text-anchor="middle">Schedules</text>
+  <text class="s" x="95" y="242" text-anchor="middle">cron · Kafka · IMAP</text>
+
+  <rect class="box" x="20" y="320" width="150" height="70" rx="8"/>
+  <text class="t" x="95" y="348" text-anchor="middle">Editor, REST client</text>
+  <text class="s" x="95" y="366" text-anchor="middle">run · watch live</text>
+
+  <!-- Roles -->
+  <rect class="box" x="230" y="90"  width="160" height="56" rx="8"/>
+  <text class="t" x="310" y="114" text-anchor="middle">webhook</text>
+  <text class="s" x="310" y="132" text-anchor="middle">stateless, horizontal</text>
+
+  <rect class="box" x="230" y="200" width="160" height="56" rx="8"/>
+  <text class="t" x="310" y="224" text-anchor="middle">trigger</text>
+  <text class="s" x="310" y="242" text-anchor="middle">one leader (lease)</text>
+
+  <rect class="box" x="230" y="320" width="160" height="70" rx="8"/>
+  <text class="t" x="310" y="348" text-anchor="middle">api</text>
+  <text class="s" x="310" y="366" text-anchor="middle">REST · editor UI · SSE</text>
+
+  <!-- Events -> roles -->
+  <line class="e" x1="170" y1="118" x2="228" y2="118" marker-end="url(#a)"/>
+  <line class="e" x1="170" y1="228" x2="228" y2="228" marker-end="url(#a)"/>
+  <line class="e" x1="170" y1="340" x2="228" y2="340" marker-end="url(#a)"/>
+  <text class="l" x="200" y="110" text-anchor="middle">1</text>
+  <text class="l" x="200" y="220" text-anchor="middle">1</text>
+  <text class="l" x="200" y="332" text-anchor="middle">1</text>
+  <line class="e" x1="230" y1="376" x2="172" y2="376" marker-end="url(#a)"/>
+  <text class="l" x="200" y="392" text-anchor="middle">SSE</text>
+
+  <!-- Shared state (Postgres in a cluster, SQLite standalone) -->
+  <rect class="group" x="540" y="60" width="230" height="350" rx="12"/>
+  <text class="s" x="655" y="78" text-anchor="middle">Postgres (SQLite when standalone)</text>
+
+  <rect class="box" x="560" y="88" width="190" height="60" rx="8"/>
+  <text class="t" x="655" y="113" text-anchor="middle">executions</text>
+  <text class="s" x="655" y="132" text-anchor="middle">queued → running → done</text>
+
+  <rect class="key" x="560" y="198" width="190" height="60" rx="8"/>
+  <text class="t" x="655" y="223" text-anchor="middle">job queue</text>
+  <text class="s" x="655" y="242" text-anchor="middle">jobs carry IDs, not payloads</text>
+
+  <rect class="box" x="560" y="320" width="190" height="70" rx="8"/>
+  <text class="t" x="655" y="348" text-anchor="middle">event bus</text>
+  <text class="s" x="655" y="366" text-anchor="middle">LISTEN / NOTIFY</text>
+
+  <!-- Roles -> shared state: one transaction creates the execution and its job -->
+  <polyline class="e" points="390,118 420,118 420,340 390,340"/>
+  <line class="e" x1="390" y1="228" x2="420" y2="228"/>
+  <line class="e" x1="420" y1="118" x2="558" y2="118" marker-end="url(#a)"/>
+  <text class="l" x="480" y="109" text-anchor="middle">2 create, queued</text>
+  <line class="ek" x1="420" y1="228" x2="558" y2="228" marker-end="url(#ak)"/>
+  <text class="lk" x="480" y="219" text-anchor="middle">3 enqueue job</text>
+  <text class="s" x="480" y="248" text-anchor="middle">same transaction</text>
+
+  <!-- Bus -> api -->
+  <line class="e" x1="560" y1="376" x2="392" y2="376" marker-end="url(#a)"/>
+  <text class="l" x="470" y="368" text-anchor="middle">5 stream to editor</text>
+
+  <!-- Workers -->
+  <rect class="box" x="870" y="96"  width="150" height="302" rx="10" transform="translate(10 -8)"/>
+  <rect class="box" x="860" y="88"  width="160" height="302" rx="10"/>
+  <text class="t" x="940" y="114" text-anchor="middle">worker × N</text>
+  <text class="s" x="940" y="132" text-anchor="middle">scales on queue depth</text>
+
+  <rect class="box" x="880" y="208" width="120" height="40" rx="6"/>
+  <text class="t" x="940" y="233" text-anchor="middle">engine</text>
+  <line class="e" x1="940" y1="248" x2="940" y2="286" marker-end="url(#a)"/>
+  <text class="s" x="948" y="272">runs</text>
+  <rect class="box" x="880" y="288" width="120" height="40" rx="6"/>
+  <text class="t" x="940" y="313" text-anchor="middle">nodes</text>
+
+  <!-- Shared state <-> workers -->
+  <line class="e" x1="860" y1="118" x2="752" y2="118" marker-end="url(#a)"/>
+  <text class="l" x="805" y="109" text-anchor="middle">6 save result</text>
+  <line class="ek" x1="750" y1="228" x2="878" y2="228" marker-end="url(#ak)"/>
+  <text class="lk" x="805" y="219" text-anchor="middle">4 claim</text>
+  <text class="s" x="805" y="248" text-anchor="middle">under a lease</text>
+  <line class="e" x1="860" y1="355" x2="752" y2="355" marker-end="url(#a)"/>
+  <text class="l" x="805" y="346" text-anchor="middle">5 publish</text>
+
+  <!-- Workers -> your systems -->
+  <rect class="box" x="1070" y="228" width="130" height="120" rx="8"/>
+  <text class="l" x="1135" y="256" text-anchor="middle">HTTP APIs</text>
+  <text class="l" x="1135" y="278" text-anchor="middle">Databases</text>
+  <text class="l" x="1135" y="300" text-anchor="middle">Slack · Email</text>
+  <text class="l" x="1135" y="322" text-anchor="middle">LLMs · Kafka · S3</text>
+  <line class="e" x1="1000" y1="308" x2="1068" y2="308" marker-end="url(#a)"/>
+
+  <!-- Failure path -->
+  <text class="s" x="655" y="440" text-anchor="middle">7  If a worker dies, its lease expires and the job goes back to the queue (at-least-once).</text>
+</svg>

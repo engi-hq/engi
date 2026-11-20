@@ -1,0 +1,1648 @@
+openapi: 3.1.0
+info:
+  title: Engi API
+  version: 1.0.0
+  summary: REST API of the Engi workflow automation platform.
+  description: |
+    REST + JSON under `/api/v1`. Conventions (authentication, pagination, errors, the
+    event stream) are explained in `docs/09-api.md`; this file is the contract and is
+    checked against the registered routes by a test.
+
+    **Authentication.** Browser clients use the session cookie set by `POST /auth/login`
+    and send the CSRF token (from the login response or `GET /me`) in `X-CSRF-Token` on
+    every state-changing request. Automation uses `Authorization: Bearer <api-key>`;
+    keys have the scopes `read` and `write` and need no CSRF token.
+
+    **Errors** are `application/problem+json` (RFC 9457).
+servers:
+  - url: /
+tags:
+  - name: Ops
+  - name: Auth
+  - name: Users
+  - name: API keys
+  - name: Workflows
+  - name: Executions
+  - name: Credentials
+  - name: Tags
+  - name: Variables
+  - name: Catalog
+  - name: Chat
+  - name: MCP
+
+security:
+  - sessionCookie: []
+  - bearerKey: []
+
+paths:
+  /healthz:
+    get:
+      tags: [Ops]
+      operationId: health
+      summary: Liveness probe
+      security: []
+      responses:
+        "200": {$ref: "#/components/responses/Status"}
+  /readyz:
+    get:
+      tags: [Ops]
+      operationId: ready
+      summary: Readiness probe (fails while draining or when the store is unreachable)
+      security: []
+      responses:
+        "200": {$ref: "#/components/responses/Status"}
+        "503": {$ref: "#/components/responses/Problem"}
+
+  /api/v1/auth/setup:
+    get:
+      tags: [Auth]
+      operationId: setupStatus
+      summary: Whether the first-run owner setup is still open
+      security: []
+      responses:
+        "200":
+          description: Setup state
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SetupStatus"}
+    post:
+      tags: [Auth]
+      operationId: setup
+      summary: Create the owner account (works once)
+      security: []
+      requestBody: {$ref: "#/components/requestBodies/NewUser"}
+      responses:
+        "201":
+          description: Owner created
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/User"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      operationId: login
+      summary: Log in and open a session (sets the session cookie)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/Login"}
+      responses:
+        "200":
+          description: Logged in
+          headers:
+            Set-Cookie:
+              description: The session cookie (HttpOnly; Secure and SameSite per configuration).
+              schema: {type: string}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Session"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "429": {$ref: "#/components/responses/Problem"}
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logout
+      summary: End the session and clear the cookie
+      security: []
+      responses:
+        "204": {description: Logged out}
+  /api/v1/me:
+    get:
+      tags: [Auth]
+      operationId: me
+      summary: The authenticated caller and the server settings the editor needs
+      responses:
+        "200":
+          description: Caller
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Me"}
+        "401": {$ref: "#/components/responses/Problem"}
+
+  /api/v1/users:
+    get:
+      tags: [Users]
+      operationId: listUsers
+      summary: List users (owner only)
+      parameters:
+        - {$ref: "#/components/parameters/Limit"}
+        - {$ref: "#/components/parameters/Cursor"}
+      responses:
+        "200":
+          description: A page of users
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/UserList"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+    post:
+      tags: [Users]
+      operationId: createUser
+      summary: Create a member account (owner only)
+      requestBody: {$ref: "#/components/requestBodies/NewUser"}
+      responses:
+        "201":
+          description: Created
+          headers:
+            Location: {schema: {type: string}}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/User"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/users/{id}:
+    parameters:
+      - {$ref: "#/components/parameters/UserId"}
+    get:
+      tags: [Users]
+      operationId: getUser
+      summary: Get a user (members may read only themselves)
+      responses:
+        "200":
+          description: The user
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/User"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+    patch:
+      tags: [Users]
+      operationId: updateUser
+      summary: Change a user's email, name, password or disabled flag
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/UserPatch"}
+      responses:
+        "200":
+          description: The updated user
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/User"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+    delete:
+      tags: [Users]
+      operationId: deleteUser
+      summary: Delete a user with their sessions and keys (owner only)
+      responses:
+        "204": {description: Deleted}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+
+  /api/v1/api-keys:
+    get:
+      tags: [API keys]
+      operationId: listApiKeys
+      summary: List the caller's API keys, revoked ones included
+      parameters:
+        - {$ref: "#/components/parameters/Limit"}
+        - {$ref: "#/components/parameters/Cursor"}
+      responses:
+        "200":
+          description: A page of keys (never the secret)
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ApiKeyList"}
+    post:
+      tags: [API keys]
+      operationId: createApiKey
+      summary: Create an API key; the token is shown once
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/NewApiKey"}
+      responses:
+        "201":
+          description: Created; `token` is returned only here
+          headers:
+            Location: {schema: {type: string}}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/CreatedApiKey"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/api-keys/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string, pattern: "^ak_"}}
+    delete:
+      tags: [API keys]
+      operationId: revokeApiKey
+      summary: Revoke an API key
+      responses:
+        "204": {description: Revoked}
+        "404": {$ref: "#/components/responses/Problem"}
+
+  /api/v1/workflows:
+    get:
+      tags: [Workflows]
+      operationId: listWorkflows
+      summary: List workflows, newest first
+      parameters:
+        - {$ref: "#/components/parameters/Limit"}
+        - {$ref: "#/components/parameters/Cursor"}
+        - {name: active, in: query, schema: {type: boolean}}
+        - {name: tag, in: query, schema: {type: string}}
+        - {name: q, in: query, description: Name contains (case-insensitive), schema: {type: string}}
+      responses:
+        "200":
+          description: A page of workflow summaries
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/WorkflowList"}
+    post:
+      tags: [Workflows]
+      operationId: createWorkflow
+      summary: Create a workflow (always inactive; the id in the body is ignored)
+      requestBody: {$ref: "#/components/requestBodies/Workflow"}
+      responses:
+        "201": {$ref: "#/components/responses/Workflow"}
+        "400": {$ref: "#/components/responses/Problem"}
+        "413": {$ref: "#/components/responses/Problem"}
+        "415": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/workflows/import:
+    post:
+      tags: [Workflows]
+      operationId: importWorkflow
+      summary: Import an exported document as a new workflow
+      requestBody: {$ref: "#/components/requestBodies/Workflow"}
+      responses:
+        "201": {$ref: "#/components/responses/Workflow"}
+        "400": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/workflows/{id}:
+    parameters:
+      - {$ref: "#/components/parameters/WorkflowId"}
+    get:
+      tags: [Workflows]
+      operationId: getWorkflow
+      summary: Get the current workflow document
+      responses:
+        "200": {$ref: "#/components/responses/Workflow"}
+        "404": {$ref: "#/components/responses/Problem"}
+    put:
+      tags: [Workflows]
+      operationId: updateWorkflow
+      summary: Replace the workflow; every save creates a new version
+      parameters:
+        - name: If-Match
+          in: header
+          description: Expected current version, for example `"3"`. A mismatch is a 409.
+          schema: {type: string}
+      requestBody: {$ref: "#/components/requestBodies/Workflow"}
+      responses:
+        "200": {$ref: "#/components/responses/Workflow"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+    delete:
+      tags: [Workflows]
+      operationId: deleteWorkflow
+      summary: Delete an inactive workflow with its versions and executions
+      responses:
+        "204": {description: Deleted}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+  /api/v1/workflows/{id}/export:
+    parameters:
+      - {$ref: "#/components/parameters/WorkflowId"}
+    get:
+      tags: [Workflows]
+      operationId: exportWorkflow
+      summary: Download the workflow document
+      responses:
+        "200":
+          description: The document, as an attachment
+          headers:
+            Content-Disposition: {schema: {type: string}}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/WorkflowDocument"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/workflows/{id}/versions:
+    parameters:
+      - {$ref: "#/components/parameters/WorkflowId"}
+    get:
+      tags: [Workflows]
+      operationId: listWorkflowVersions
+      summary: Version history, newest first
+      parameters:
+        - {$ref: "#/components/parameters/Limit"}
+        - {$ref: "#/components/parameters/Cursor"}
+      responses:
+        "200":
+          description: A page of versions
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/VersionList"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/workflows/{id}/versions/{version}:
+    parameters:
+      - {$ref: "#/components/parameters/WorkflowId"}
+      - {$ref: "#/components/parameters/Version"}
+    get:
+      tags: [Workflows]
+      operationId: getWorkflowVersion
+      summary: One historical version
+      responses:
+        "200":
+          description: The version with its document
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/WorkflowVersion"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/workflows/{id}/versions/{version}/restore:
+    parameters:
+      - {$ref: "#/components/parameters/WorkflowId"}
+      - {$ref: "#/components/parameters/Version"}
+    post:
+      tags: [Workflows]
+      operationId: restoreWorkflowVersion
+      summary: Save an old version as a new current version
+      responses:
+        "200": {$ref: "#/components/responses/Workflow"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/workflows/{id}/activate:
+    parameters:
+      - {$ref: "#/components/parameters/WorkflowId"}
+    post:
+      tags: [Workflows]
+      operationId: activateWorkflow
+      summary: Register the workflow's triggers
+      responses:
+        "200": {$ref: "#/components/responses/Workflow"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "501": {$ref: "#/components/responses/Problem"}
+  /api/v1/workflows/{id}/deactivate:
+    parameters:
+      - {$ref: "#/components/parameters/WorkflowId"}
+    post:
+      tags: [Workflows]
+      operationId: deactivateWorkflow
+      summary: Remove the workflow's triggers
+      responses:
+        "200": {$ref: "#/components/responses/Workflow"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "501": {$ref: "#/components/responses/Problem"}
+  /api/v1/workflows/{id}/test-webhook:
+    parameters:
+      - {$ref: "#/components/parameters/WorkflowId"}
+    post:
+      tags: [Workflows]
+      operationId: armTestWebhook
+      summary: Arm the test URL of the workflow's webhook trigger
+      description: The node answers one call on the returned path until it expires; the execution runs in manual mode.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                node: {type: string, description: Webhook trigger node; optional when there is exactly one}
+      responses:
+        "200":
+          description: The armed test URL
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [method, urlPath, expiresAt]
+                properties:
+                  method: {type: string}
+                  urlPath: {type: string}
+                  expiresAt: {type: string, format: date-time}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "501": {$ref: "#/components/responses/Problem"}
+  /api/v1/workflows/{id}/run:
+    parameters:
+      - {$ref: "#/components/parameters/WorkflowId"}
+    post:
+      tags: [Workflows]
+      operationId: runWorkflow
+      summary: Start a manual execution
+      description: Answers 202 at once. Follow the run with `GET /executions/{id}` or its stream.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/RunRequest"}
+      responses:
+        "202":
+          description: Execution queued
+          headers:
+            Location: {schema: {type: string}}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Started"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+
+  /api/v1/expressions/preview:
+    post:
+      tags: [Workflows]
+      operationId: previewExpression
+      summary: Evaluate an expression against a past execution's node input
+      description: Read-only, so an API key with the read scope may call it. A failing expression answers 422 with type `expression-error`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ExpressionPreviewRequest"}
+      responses:
+        "200":
+          description: The evaluated value
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ExpressionPreview"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+        "501": {$ref: "#/components/responses/Problem"}
+
+  /api/v1/executions:
+    get:
+      tags: [Executions]
+      operationId: listExecutions
+      summary: List executions, newest first (without run data)
+      parameters:
+        - {$ref: "#/components/parameters/Limit"}
+        - {$ref: "#/components/parameters/Cursor"}
+        - name: status
+          in: query
+          description: Repeat or comma-separate to match several statuses.
+          style: form
+          explode: true
+          schema:
+            type: array
+            items: {$ref: "#/components/schemas/ExecutionStatus"}
+        - {name: workflowId, in: query, schema: {type: string}}
+        - {name: from, in: query, description: Started at or after (RFC 3339), schema: {type: string, format: date-time}}
+        - {name: to, in: query, description: Started before (RFC 3339), schema: {type: string, format: date-time}}
+      responses:
+        "200":
+          description: A page of executions
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ExecutionList"}
+        "400": {$ref: "#/components/responses/Problem"}
+  /api/v1/executions/{id}:
+    parameters:
+      - {$ref: "#/components/parameters/ExecutionId"}
+    get:
+      tags: [Executions]
+      operationId: getExecution
+      summary: One execution with its run data
+      responses:
+        "200":
+          description: The execution
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Execution"}
+        "404": {$ref: "#/components/responses/Problem"}
+    delete:
+      tags: [Executions]
+      operationId: deleteExecution
+      summary: Delete a finished execution
+      responses:
+        "204": {description: Deleted}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+  /api/v1/executions/{id}/cancel:
+    parameters:
+      - {$ref: "#/components/parameters/ExecutionId"}
+    post:
+      tags: [Executions]
+      operationId: cancelExecution
+      summary: Cancel a queued, waiting or running execution
+      responses:
+        "202": {description: Cancellation accepted; a running execution stops when its worker notices}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+  /api/v1/executions/{id}/retry:
+    parameters:
+      - {$ref: "#/components/parameters/ExecutionId"}
+    post:
+      tags: [Executions]
+      operationId: retryExecution
+      summary: Start a new execution with the input of a failed one
+      responses:
+        "202":
+          description: New execution queued
+          headers:
+            Location: {schema: {type: string}}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Started"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+  /api/v1/executions/{id}/stream:
+    parameters:
+      - {$ref: "#/components/parameters/ExecutionId"}
+    get:
+      tags: [Executions]
+      operationId: streamExecution
+      summary: Live execution events (server-sent events)
+      description: |
+        Events: `execution.started`, `node.started`, `node.finished`, `execution.waiting`
+        and `execution.finished`. Item payloads are never sent. The stream of a finished
+        execution answers with its final event and closes. The bus keeps no history, so a
+        reconnect (`Last-Event-ID`) starts from the current state.
+      responses:
+        "200":
+          description: Event stream
+          content:
+            text/event-stream:
+              schema: {type: string}
+        "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/executions/{id}/binary/{ref}:
+    parameters:
+      - {$ref: "#/components/parameters/ExecutionId"}
+      - {name: ref, in: path, required: true, description: "The id part of an item's `blob://<executionId>/<ref>` reference", schema: {type: string}}
+    get:
+      tags: [Executions]
+      operationId: getExecutionBinary
+      summary: Download one binary value of an execution
+      description: |
+        Streams the bytes with the stored `Content-Type`. The response is an attachment named
+        after the stored file name; `?inline=true` serves images, PDF, plain text, audio and
+        video in place (anything else is always a download). Range requests are not supported.
+      parameters:
+        - {name: inline, in: query, required: false, schema: {type: boolean}}
+      responses:
+        "200":
+          description: The binary data
+          content:
+            "*/*":
+              schema: {type: string, format: binary}
+        "404": {$ref: "#/components/responses/Problem"}
+        "501": {$ref: "#/components/responses/Problem"}
+
+  /api/v1/credentials:
+    get:
+      tags: [Credentials]
+      operationId: listCredentials
+      summary: List credentials without their data
+      parameters:
+        - {$ref: "#/components/parameters/Limit"}
+        - {$ref: "#/components/parameters/Cursor"}
+      responses:
+        "200":
+          description: A page of credential summaries
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/CredentialList"}
+    post:
+      tags: [Credentials]
+      operationId: createCredential
+      summary: Create a credential (secrets are encrypted at rest)
+      requestBody: {$ref: "#/components/requestBodies/Credential"}
+      responses:
+        "201":
+          description: Created; secret fields are redacted
+          headers:
+            Location: {schema: {type: string}}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Credential"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/credentials/{id}:
+    parameters:
+      - {$ref: "#/components/parameters/CredentialId"}
+    get:
+      tags: [Credentials]
+      operationId: getCredential
+      summary: Get a credential with secret fields redacted
+      responses:
+        "200": {$ref: "#/components/responses/Credential"}
+        "404": {$ref: "#/components/responses/Problem"}
+    put:
+      tags: [Credentials]
+      operationId: updateCredential
+      summary: Update name and data; redacted secret fields keep their stored value
+      requestBody: {$ref: "#/components/requestBodies/Credential"}
+      responses:
+        "200": {$ref: "#/components/responses/Credential"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+    delete:
+      tags: [Credentials]
+      operationId: deleteCredential
+      summary: Delete a credential
+      responses:
+        "204": {description: Deleted}
+        "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/credentials/{id}/test:
+    parameters:
+      - {$ref: "#/components/parameters/CredentialId"}
+    post:
+      tags: [Credentials]
+      operationId: testCredential
+      summary: Run the credential type's test
+      description: "A failing test is a 200 with `success: false` and a fixed message; details are never echoed because they could contain secrets."
+      responses:
+        "200":
+          description: Test outcome
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/TestResult"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/credentials/{id}/authorize:
+    parameters:
+      - {$ref: "#/components/parameters/CredentialId"}
+    post:
+      tags: [Credentials]
+      operationId: authorizeCredential
+      summary: Start the OAuth2 authorization-code flow
+      responses:
+        "200":
+          description: The provider URL to send the user to
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Authorize"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/tags:
+    get:
+      tags: [Tags]
+      operationId: listTags
+      summary: List tags by name
+      parameters:
+        - {$ref: "#/components/parameters/Limit"}
+        - {$ref: "#/components/parameters/Cursor"}
+      responses:
+        "200":
+          description: A page of tags
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/TagList"}
+    post:
+      tags: [Tags]
+      operationId: createTag
+      summary: Create a tag
+      requestBody: {$ref: "#/components/requestBodies/Tag"}
+      responses:
+        "201":
+          description: Created
+          headers:
+            Location: {schema: {type: string}}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Tag"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/tags/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string, pattern: "^tg_"}}
+    patch:
+      tags: [Tags]
+      operationId: updateTag
+      summary: Rename a tag on the tag list and on every workflow carrying it
+      requestBody: {$ref: "#/components/requestBodies/Tag"}
+      responses:
+        "200":
+          description: The renamed tag
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Tag"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+    delete:
+      tags: [Tags]
+      operationId: deleteTag
+      summary: Delete a tag and remove it from every workflow
+      responses:
+        "204": {description: Deleted}
+        "404": {$ref: "#/components/responses/Problem"}
+
+  /api/v1/variables:
+    get:
+      tags: [Variables]
+      operationId: listVariables
+      summary: List variables by key; secret values are redacted
+      parameters:
+        - {$ref: "#/components/parameters/Limit"}
+        - {$ref: "#/components/parameters/Cursor"}
+      responses:
+        "200":
+          description: A page of variables
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/VariableList"}
+    post:
+      tags: [Variables]
+      operationId: createVariable
+      summary: Create a variable readable as $vars.KEY
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/VariableInput"}
+      responses:
+        "201":
+          description: Created
+          headers:
+            Location: {schema: {type: string}}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Variable"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+  /api/v1/variables/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string, pattern: "^vr_"}}
+    patch:
+      tags: [Variables]
+      operationId: updateVariable
+      summary: Change key, value or secret flag; omitted fields stay
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/VariablePatch"}
+      responses:
+        "200":
+          description: The updated variable
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Variable"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "409": {$ref: "#/components/responses/Problem"}
+        "422": {$ref: "#/components/responses/Problem"}
+    delete:
+      tags: [Variables]
+      operationId: deleteVariable
+      summary: Delete a variable
+      responses:
+        "204": {description: Deleted}
+        "404": {$ref: "#/components/responses/Problem"}
+
+  /api/v1/credential-types:
+    get:
+      tags: [Catalog]
+      operationId: listCredentialTypes
+      summary: Registered credential types
+      responses:
+        "200":
+          description: All credential types
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/CredentialType"}
+  /api/v1/credential-types/{name}:
+    parameters:
+      - {name: name, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Catalog]
+      operationId: getCredentialType
+      summary: One credential type
+      responses:
+        "200":
+          description: The type
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/CredentialType"}
+        "404": {$ref: "#/components/responses/Problem"}
+  /api/v1/node-types:
+    get:
+      tags: [Catalog]
+      operationId: listNodeTypes
+      summary: Descriptors of every registered node type and version
+      responses:
+        "200":
+          description: All node types
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/NodeType"}
+  /api/v1/plugins:
+    get:
+      tags: [Catalog]
+      operationId: listPlugins
+      summary: Installed plugins and whether they loaded
+      description: >-
+        Every installed plugin with its active version. A plugin that failed to start or broke a
+        rule of docs/15 section 15.4 is listed with state `failed` and the reason; its nodes are
+        not available. Install and switch versions with `engi plugin`; changes apply at the next
+        server start.
+      responses:
+        "200":
+          description: All installed plugins
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/Plugin"}
+  /api/v1/node-types/{type}:
+    parameters:
+      - {name: type, in: path, required: true, schema: {type: string}, example: engi.http.request}
+    get:
+      tags: [Catalog]
+      operationId: getNodeType
+      summary: One node type descriptor (newest version unless `version` is given)
+      parameters:
+        - {name: version, in: query, schema: {type: integer, minimum: 1}}
+      responses:
+        "200":
+          description: The descriptor
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/NodeType"}
+        "404": {$ref: "#/components/responses/Problem"}
+
+  /oauth2/callback:
+    get:
+      tags: [Credentials]
+      operationId: oauth2Callback
+      summary: OAuth2 redirect target
+      description: |
+        The provider sends the browser here. The sealed `state` authenticates the request,
+        so no session is needed. Answers 303 to `server.oauth2CompleteRedirect` when it is
+        configured, otherwise 200 with the credential id.
+      security: []
+      parameters:
+        - {name: state, in: query, schema: {type: string}}
+        - {name: code, in: query, schema: {type: string}}
+        - {name: error, in: query, schema: {type: string}}
+        - {name: error_description, in: query, schema: {type: string}}
+        - {name: error_uri, in: query, schema: {type: string}}
+        - {name: iss, in: query, schema: {type: string}}
+        - {name: session_state, in: query, schema: {type: string}}
+      responses:
+        "200":
+          description: Authorized
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Authorized"}
+        "303": {description: Redirect to the configured completion page}
+        "400": {$ref: "#/components/responses/Problem"}
+
+webhooks:
+  # Public routes served by the webhook role next to the API. They are not under
+  # /api/v1, take no session, API key or CSRF token, and are not registered in the
+  # API router, so the route-coverage test does not list them. Paths below are
+  # relative to chat.basePath (default /chat); the keys name the route.
+  chatMessage:
+    post:
+      tags: [Chat]
+      operationId: chatMessage
+      summary: "POST /chat/{path}: send one message to a Chat trigger"
+      description: |
+        Served while the workflow that holds the Chat trigger is active. `{path}` is the node's
+        path (or `<workflow id>/<node name slug>`). The trigger emits one item
+        `{sessionId, chatInput, metadata?}`. Authentication is the node's choice: none, HTTP Basic or a
+        header token. Browser callers from another origin need that origin in the node's allowed origins.
+        The session id is also returned in the `X-Chat-Session-Id` header. In `responseNode` mode the
+        status, headers and body are whatever the Respond to Webhook node sends.
+      security: []
+      parameters:
+        - name: path
+          in: path
+          required: true
+          description: Chat path; may contain slashes
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message: {type: string, minLength: 1, description: The user's message (required unless chatInput is sent)}
+                chatInput: {type: string, description: Alias of message}
+                sessionId: {type: string, maxLength: 128, pattern: '^[A-Za-z0-9._:-]+$', description: Conversation key; generated when absent}
+                metadata: {type: object, additionalProperties: true}
+      responses:
+        "200":
+          description: The workflow's reply (lastNode mode)
+          headers:
+            X-Chat-Session-Id: {schema: {type: string}}
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [sessionId, output]
+                properties:
+                  sessionId: {type: string}
+                  output: {type: string}
+                  executionId: {type: string}
+        "202":
+          description: The run is waiting (for example a Wait node); no reply yet
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessionId: {type: string}
+                  executionId: {type: string}
+                  status: {type: string}
+        "400": {$ref: "#/components/responses/Problem"}
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "413": {$ref: "#/components/responses/Problem"}
+        "500": {$ref: "#/components/responses/Problem"}
+        "502": {$ref: "#/components/responses/Problem"}
+        "504": {$ref: "#/components/responses/Problem"}
+    options:
+      tags: [Chat]
+      operationId: chatPreflight
+      summary: "OPTIONS /chat/{path}: CORS preflight"
+      security: []
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        "204": {description: Origin allowed; Access-Control-Allow-* headers are set}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+  chatWidget:
+    get:
+      tags: [Chat]
+      operationId: chatWidget
+      summary: "GET /chat/{path}/widget: the hosted chat page"
+      description: |
+        An HTML page with no inline script or style. Its CSP is `default-src 'none'; script-src 'self';
+        style-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'` plus a `frame-ancestors`
+        of `'self'` or the node's allowed origins. Only served when authentication is none (403 otherwise).
+        The files `widget.js`, `widget.css` (page) and `loader.js` (embed snippet that adds a floating button
+        and an iframe) are served next to it as `GET /chat/{path}/widget.js` and so on.
+      security: []
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: The chat page
+          content:
+            text/html: {schema: {type: string}}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+
+  mcpServer:
+    post:
+      tags: [MCP]
+      operationId: mcpServer
+      summary: "POST /mcp/{path}: call an MCP server trigger (Model Context Protocol, Streamable HTTP)"
+      description: |
+        Served while the workflow that holds the MCP Server trigger is active; `{path}` is the node's path
+        (or `<workflow id>/<node name slug>`), relative to `mcpServer.basePath` (default `/mcp`). The body is
+        one JSON-RPC 2.0 message (or a batch). Supported methods: `initialize` (protocol versions 2025-11-25,
+        2025-06-18, 2025-03-26 and 2024-11-05 are negotiated), `notifications/initialized`, `ping`,
+        `tools/list` and `tools/call`. A `tools/call` runs the tool's workflow synchronously with the
+        arguments as its input item and returns the last node's output as JSON text; a failed workflow is a
+        result with `isError: true`, while unknown tools, bad arguments and an overloaded server are JSON-RPC
+        errors. Replies are always `application/json`; the server is stateless (no `Mcp-Session-Id`), so GET
+        and DELETE answer 405. Authentication is the node's choice: none, bearer token or header token. A
+        request carrying an `Origin` header must name an origin in `mcpServer.allowedOrigins` (403 otherwise).
+      security: []
+      parameters:
+        - name: path
+          in: path
+          required: true
+          description: MCP path; may contain slashes
+          schema: {type: string}
+        - name: MCP-Protocol-Version
+          in: header
+          required: false
+          description: Negotiated protocol version; an unsupported value is refused with 400
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [jsonrpc, method]
+              properties:
+                jsonrpc: {type: string, enum: ["2.0"]}
+                id: {description: "Request id; omitted for notifications", oneOf: [{type: string}, {type: integer}]}
+                method: {type: string, enum: [initialize, notifications/initialized, ping, tools/list, tools/call]}
+                params: {type: object, additionalProperties: true}
+      responses:
+        "200":
+          description: The JSON-RPC response (a result or an error object)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jsonrpc: {type: string}
+                  id: {}
+                  result: {type: object, additionalProperties: true}
+                  error:
+                    type: object
+                    properties:
+                      code: {type: integer}
+                      message: {type: string}
+        "202": {description: The message was a notification or a response; nothing to answer}
+        "400":
+          description: "Not valid JSON-RPC (body is a JSON-RPC parse error) or an unsupported protocol version (problem)"
+        "401": {$ref: "#/components/responses/Problem"}
+        "403": {$ref: "#/components/responses/Problem"}
+        "404": {$ref: "#/components/responses/Problem"}
+        "405": {$ref: "#/components/responses/Problem"}
+        "413": {$ref: "#/components/responses/Problem"}
+        "500": {$ref: "#/components/responses/Problem"}
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: engi_session
+      description: Cookie name is configurable (`auth.session.cookieName`). State-changing requests also need the CSRF header.
+    bearerKey:
+      type: http
+      scheme: bearer
+      description: An API key.
+
+  parameters:
+    Limit:
+      name: limit
+      in: query
+      description: Page size; defaults and is capped by `server.pagination.*`.
+      schema: {type: integer, minimum: 1}
+    Cursor:
+      name: cursor
+      in: query
+      description: Opaque cursor from the previous page's `nextCursor`.
+      schema: {type: string}
+    UserId:
+      {name: id, in: path, required: true, schema: {type: string, pattern: "^us_"}}
+    WorkflowId:
+      {name: id, in: path, required: true, schema: {type: string, pattern: "^wf_"}}
+    ExecutionId:
+      {name: id, in: path, required: true, schema: {type: string, pattern: "^ex_"}}
+    CredentialId:
+      {name: id, in: path, required: true, schema: {type: string, pattern: "^cr_"}}
+    Version:
+      {name: version, in: path, required: true, schema: {type: integer, minimum: 1}}
+
+  requestBodies:
+    NewUser:
+      required: true
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/NewUser"}
+    Workflow:
+      required: true
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/WorkflowDocument"}
+    Credential:
+      required: true
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/CredentialInput"}
+    Tag:
+      required: true
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/TagInput"}
+
+  responses:
+    Problem:
+      description: Error (RFC 9457)
+      content:
+        application/problem+json:
+          schema: {$ref: "#/components/schemas/Problem"}
+    Status:
+      description: Probe answer
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [status]
+            properties:
+              status: {type: string, enum: [ok, draining]}
+    Workflow:
+      description: A workflow document; the `ETag` header carries its version
+      headers:
+        ETag: {schema: {type: string}}
+        Location: {schema: {type: string}}
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/WorkflowDocument"}
+    Credential:
+      description: A credential with secret fields redacted
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Credential"}
+
+  schemas:
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type: {type: string, format: uri}
+        title: {type: string}
+        status: {type: integer}
+        detail: {type: string}
+        instance: {type: string}
+        requestId: {type: string}
+        errors:
+          type: array
+          items:
+            type: object
+            required: [pointer, message]
+            properties:
+              pointer: {type: string, description: JSON pointer into the request, example: /nodes/0/parameters/url}
+              message: {type: string}
+    SetupStatus:
+      type: object
+      required: [required]
+      properties:
+        required: {type: boolean}
+    NewUser:
+      type: object
+      required: [email, name, password]
+      additionalProperties: false
+      properties:
+        email: {type: string, format: email}
+        name: {type: string}
+        password: {type: string, format: password, writeOnly: true}
+    UserPatch:
+      type: object
+      additionalProperties: false
+      properties:
+        email: {type: string, format: email}
+        name: {type: string}
+        disabled: {type: boolean}
+        password: {type: string, format: password, writeOnly: true}
+        currentPassword: {type: string, format: password, writeOnly: true}
+    User:
+      type: object
+      required: [id, email, name, role, disabled, createdAt, updatedAt]
+      properties:
+        id: {type: string}
+        email: {type: string}
+        name: {type: string}
+        role: {type: string, enum: [owner, member]}
+        disabled: {type: boolean}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+    Login:
+      type: object
+      required: [email, password]
+      additionalProperties: false
+      properties:
+        email: {type: string}
+        password: {type: string, format: password, writeOnly: true}
+    Session:
+      type: object
+      required: [user, csrfToken, expiresAt]
+      properties:
+        user: {$ref: "#/components/schemas/User"}
+        csrfToken: {type: string}
+        expiresAt: {type: string, format: date-time}
+    Me:
+      type: object
+      required: [user, authKind, editor]
+      properties:
+        user: {$ref: "#/components/schemas/User"}
+        authKind: {type: string, enum: [session, apiKey]}
+        csrfToken: {type: string, description: Present for session callers}
+        editor: {$ref: "#/components/schemas/EditorSettings"}
+    EditorSettings:
+      type: object
+      description: Server settings the browser editor reads once, with GET /me.
+      required: [chatBasePath, maxNoteTextBytes]
+      properties:
+        chatBasePath: {type: string, description: URL prefix of chat endpoints and widgets (chat.basePath), e.g. /chat}
+        maxNoteTextBytes: {type: integer, minimum: 1, description: Largest sticky note text in UTF-8 bytes (workflow.maxNoteTextBytes)}
+    NewApiKey:
+      type: object
+      required: [name, scopes]
+      additionalProperties: false
+      properties:
+        name: {type: string}
+        scopes:
+          type: array
+          items: {type: string, enum: [read, write]}
+        expiresAt: {type: string, format: date-time}
+    ApiKey:
+      type: object
+      required: [id, name, prefix, scopes, createdAt]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        prefix: {type: string}
+        scopes:
+          type: array
+          items: {type: string, enum: [read, write]}
+        expiresAt: {type: string, format: date-time}
+        lastUsedAt: {type: string, format: date-time}
+        revokedAt: {type: string, format: date-time}
+        createdAt: {type: string, format: date-time}
+    CreatedApiKey:
+      allOf:
+        - $ref: "#/components/schemas/ApiKey"
+        - type: object
+          required: [token]
+          properties:
+            token: {type: string, description: The full key. Shown once.}
+
+    WorkflowDocument:
+      type: object
+      description: The workflow document format of docs/03. Unknown fields are rejected.
+      required: [name, nodes, connections]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        active: {type: boolean}
+        version: {type: integer}
+        settings: {type: object}
+        nodes:
+          type: array
+          items: {type: object, required: [name, type], additionalProperties: true}
+        connections:
+          type: array
+          items: {type: object, additionalProperties: true}
+        pinData: {type: object}
+        tags:
+          type: array
+          items: {type: string}
+        notes:
+          type: array
+          description: Sticky notes on the canvas. The engine never sees them. Limits are set by workflow.maxNotes and workflow.maxNoteTextBytes.
+          items: {$ref: "#/components/schemas/StickyNote"}
+    StickyNote:
+      type: object
+      required: [id, position, size]
+      properties:
+        id: {type: string, description: "Unique within the workflow; letters, digits, '-' and '_', at most 64 characters."}
+        text: {type: string, description: Markdown source.}
+        position:
+          type: array
+          description: "[x, y] of the top-left corner on the canvas."
+          minItems: 2
+          maxItems: 2
+          items: {type: number}
+        size:
+          type: object
+          required: [width, height]
+          properties:
+            width: {type: number, exclusiveMinimum: 0}
+            height: {type: number, exclusiveMinimum: 0}
+        color: {type: string, enum: [yellow, blue, green, red, purple, gray], description: Palette name; omitted means yellow.}
+    WorkflowSummary:
+      type: object
+      required: [id, name, active, version, tags, nodeCount]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        active: {type: boolean}
+        version: {type: integer}
+        tags:
+          type: array
+          items: {type: string}
+        nodeCount: {type: integer}
+    VersionSummary:
+      type: object
+      required: [version, name, createdAt]
+      properties:
+        version: {type: integer}
+        name: {type: string}
+        createdAt: {type: string, format: date-time}
+    WorkflowVersion:
+      type: object
+      required: [version, createdAt, workflow]
+      properties:
+        version: {type: integer}
+        createdAt: {type: string, format: date-time}
+        workflow: {$ref: "#/components/schemas/WorkflowDocument"}
+    RunRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        startNode: {type: string, description: Defaults to the workflow's only trigger}
+        items:
+          type: array
+          description: Items for the start node; each element is a JSON object
+          items: {type: object}
+        destination:
+          type: object
+          description: Partial run; only the nodes needed to compute `node` run
+          required: [node]
+          properties:
+            node: {type: string}
+            mode: {type: string, enum: [inclusive, exclusive], default: inclusive}
+        pinData:
+          type: object
+          description: Per-node replacement output for this run only
+          additionalProperties:
+            type: array
+            items: {type: object}
+        workflow:
+          type: object
+          description: Unsaved workflow document to run instead of the saved one; validated like a save, not stored as a version
+          additionalProperties: true
+    ExpressionPreviewRequest:
+      type: object
+      additionalProperties: false
+      required: [expression, node]
+      properties:
+        expression: {type: string, description: Bare JavaScript, or a template when it starts with "="}
+        node: {type: string}
+        itemIndex: {type: integer, default: 0}
+        runIndex: {type: integer, default: 0}
+        executionId: {type: string, description: Past execution to read; otherwise the newest of workflowId that ran the node}
+        workflowId: {type: string}
+        workflow: {type: object, additionalProperties: true, description: Optional unsaved document; supplies $workflow and a workflow id}
+    ExpressionPreview:
+      type: object
+      required: [value]
+      properties:
+        value: {description: The evaluated result, any JSON value}
+    Started:
+      type: object
+      required: [executionId]
+      properties:
+        executionId: {type: string}
+
+    ExecutionStatus:
+      type: string
+      enum: [queued, running, waiting, success, error, canceled, crashed]
+    ErrorInfo:
+      type: object
+      required: [kind, message]
+      properties:
+        kind: {type: string, enum: [node, workflow, timeout, canceled]}
+        node: {type: string}
+        message: {type: string}
+        description: {type: string}
+        httpStatus: {type: integer}
+        itemIndex: {type: integer}
+    Execution:
+      type: object
+      required: [id, workflowId, workflowVersion, mode, status, startedAt, attempts]
+      properties:
+        id: {type: string}
+        workflowId: {type: string}
+        workflowVersion: {type: integer}
+        mode: {type: string, enum: [webhook, trigger, manual, retry, subworkflow, error]}
+        status: {$ref: "#/components/schemas/ExecutionStatus"}
+        startedAt: {type: string, format: date-time}
+        finishedAt: {type: string, format: date-time}
+        waitUntil: {type: string, format: date-time}
+        parentExecutionId: {type: string}
+        attempts:
+          type: integer
+          minimum: 0
+          description: How many times a worker started the run. 1 for a run that went through once; more when a dead worker's run was taken over or a failed attempt was retried.
+        lastRecoveredAt:
+          type: string
+          format: date-time
+          description: When a reclaim last took the run back from a worker that died. Absent when no worker has died under this execution.
+        error: {$ref: "#/components/schemas/ErrorInfo"}
+        runData:
+          type: object
+          description: Node name to its runs (only on the detail view)
+          additionalProperties: {type: array, items: {type: object}}
+
+    CredentialInput:
+      type: object
+      required: [name, data]
+      additionalProperties: false
+      properties:
+        name: {type: string}
+        type: {type: string, description: Required on create; cannot change on update}
+        data:
+          type: object
+          description: Field values of the credential type. A secret field sent back as the redaction sentinel keeps its stored value.
+    CredentialSummary:
+      type: object
+      required: [id, name, type, createdAt, updatedAt]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        type: {type: string}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+    Credential:
+      type: object
+      required: [id, name, type, data, needsReauth, createdAt, updatedAt]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        type: {type: string}
+        data: {type: object, description: Secret fields are replaced by a sentinel}
+        needsReauth: {type: boolean}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+    TestResult:
+      type: object
+      required: [success]
+      properties:
+        success: {type: boolean}
+        message: {type: string}
+    Authorize:
+      type: object
+      required: [url]
+      properties:
+        url: {type: string, format: uri}
+    Authorized:
+      type: object
+      required: [credentialId]
+      properties:
+        credentialId: {type: string}
+
+    Property:
+      type: object
+      required: [name, type]
+      properties:
+        name: {type: string}
+        displayName: {type: string}
+        type: {type: string}
+        default: {}
+        required: {type: boolean}
+        placeholder: {type: string}
+        description: {type: string}
+        options:
+          type: array
+          items: {type: object}
+        children:
+          type: array
+          items: {$ref: "#/components/schemas/Property"}
+        displayOptions: {type: object}
+    Plugin:
+      type: object
+      required: [name, version, nodes, state]
+      properties:
+        name: {type: string, example: acme-text}
+        version: {type: string, example: 1.2.0}
+        transport: {type: string, enum: [stdio, http]}
+        nodes: {type: array, items: {type: string}, description: Node types registered (loaded) or declared (failed)}
+        state: {type: string, enum: [loaded, failed]}
+        error: {type: string}
+    NodeType:
+      type: object
+      required: [type, version, displayName, group, inputs, outputs, properties, credentials]
+      properties:
+        type: {type: string}
+        version: {type: integer}
+        displayName: {type: string}
+        description: {type: string}
+        group: {type: string}
+        icon: {type: string}
+        inputs: {type: array, items: {$ref: "#/components/schemas/PortSpec"}}
+        outputs: {type: array, items: {$ref: "#/components/schemas/PortSpec"}}
+        properties:
+          type: array
+          items: {$ref: "#/components/schemas/Property"}
+        credentials: {type: array, items: {type: object}}
+        mergePolicy: {type: string}
+    PortSpec:
+      type: object
+      required: [kind]
+      description: One input or output port. Kinds starting with `ai.` are sub-ports (docs/14-ai.md, Sub-ports).
+      properties:
+        name: {type: string}
+        kind: {type: string, description: "`main` or an `ai.*` sub-port kind such as `ai.model`, `ai.tool`, `ai.memory`"}
+        displayName: {type: string}
+        required: {type: boolean, description: An input that must be connected (sub-port inputs are checked when the node runs).}
+        maxConnections: {type: integer, description: Sub-port inputs only; absent means unlimited.}
+    CredentialType:
+      type: object
+      required: [name, displayName, fields, testable, oauth2, authenticates]
+      properties:
+        name: {type: string}
+        displayName: {type: string}
+        icon: {type: string}
+        fields:
+          type: array
+          items:
+            allOf:
+              - $ref: "#/components/schemas/Property"
+              - type: object
+                properties:
+                  secret: {type: boolean}
+        testable: {type: boolean}
+        oauth2: {type: boolean}
+        authenticates: {type: boolean}
+
+    UserList:
+      allOf:
+        - {$ref: "#/components/schemas/Page"}
+        - type: object
+          properties:
+            data: {type: array, items: {$ref: "#/components/schemas/User"}}
+    ApiKeyList:
+      allOf:
+        - {$ref: "#/components/schemas/Page"}
+        - type: object
+          properties:
+            data: {type: array, items: {$ref: "#/components/schemas/ApiKey"}}
+    WorkflowList:
+      allOf:
+        - {$ref: "#/components/schemas/Page"}
+        - type: object
+          properties:
+            data: {type: array, items: {$ref: "#/components/schemas/WorkflowSummary"}}
+    VersionList:
+      allOf:
+        - {$ref: "#/components/schemas/Page"}
+        - type: object
+          properties:
+            data: {type: array, items: {$ref: "#/components/schemas/VersionSummary"}}
+    ExecutionList:
+      allOf:
+        - {$ref: "#/components/schemas/Page"}
+        - type: object
+          properties:
+            data: {type: array, items: {$ref: "#/components/schemas/Execution"}}
+    CredentialList:
+      allOf:
+        - {$ref: "#/components/schemas/Page"}
+        - type: object
+          properties:
+            data: {type: array, items: {$ref: "#/components/schemas/CredentialSummary"}}
+    TagInput:
+      type: object
+      required: [name]
+      additionalProperties: false
+      properties:
+        name: {type: string, minLength: 1, maxLength: 50}
+    Tag:
+      type: object
+      required: [id, name, createdAt]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        createdAt: {type: string, format: date-time}
+    TagList:
+      allOf:
+        - {$ref: "#/components/schemas/Page"}
+        - type: object
+          properties:
+            data: {type: array, items: {$ref: "#/components/schemas/Tag"}}
+    VariableInput:
+      type: object
+      required: [key, value]
+      additionalProperties: false
+      properties:
+        key: {type: string, pattern: "^[A-Za-z_][A-Za-z0-9_]*$", maxLength: 100}
+        value: {type: string}
+        secret: {type: boolean, default: false}
+    VariablePatch:
+      type: object
+      additionalProperties: false
+      properties:
+        key: {type: string, pattern: "^[A-Za-z_][A-Za-z0-9_]*$", maxLength: 100}
+        value: {type: string}
+        secret: {type: boolean, description: Turning it off requires a new value}
+    Variable:
+      type: object
+      required: [id, key, value, secret, createdAt, updatedAt]
+      properties:
+        id: {type: string}
+        key: {type: string}
+        value: {type: string, description: The sentinel __ENGI_SECRET__ when secret is true}
+        secret: {type: boolean}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+    VariableList:
+      allOf:
+        - {$ref: "#/components/schemas/Page"}
+        - type: object
+          properties:
+            data: {type: array, items: {$ref: "#/components/schemas/Variable"}}
+    Page:
+      type: object
+      required: [data, hasMore]
+      properties:
+        data: {type: array, items: {}}
+        nextCursor: {type: string}
+        hasMore: {type: boolean}

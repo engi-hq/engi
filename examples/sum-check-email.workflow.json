@@ -1,0 +1,26 @@
+{
+  "name": "Sum check and email",
+  "nodes": [
+    { "name": "Start", "type": "engi.trigger.manual", "typeVersion": 1, "position": [0, 0], "parameters": {} },
+    { "name": "Values", "type": "engi.transform.set", "typeVersion": 1, "position": [220, 0],
+      "parameters": { "mode": "manual", "fields": [
+        { "name": "a", "type": "number", "value": "7" },
+        { "name": "b", "type": "number", "value": "5" } ] } },
+    { "name": "Add", "type": "engi.transform.set", "typeVersion": 1, "position": [440, 0],
+      "parameters": { "mode": "manual", "keepOtherFields": true, "fields": [
+        { "name": "sum", "type": "number", "value": "={{ $json.a + $json.b }}" } ] } },
+    { "name": "Matches 12?", "type": "engi.flow.if", "typeVersion": 1, "position": [660, 0],
+      "parameters": { "combinator": "and", "conditions": [
+        { "left": "={{ $json.sum }}", "operator": "number:equals", "right": "={{ 12 }}" } ] } },
+    { "name": "Send mail", "type": "engi.email.send", "typeVersion": 1, "position": [880, -80],
+      "credentials": { "engi.smtp": "cr_REPLACE_WITH_YOUR_SMTP_CREDENTIAL_ID" },
+      "parameters": { "to": "you@example.com", "subject": "Sum matched",
+        "text": "={{ $json.a }} + {{ $json.b }} = {{ $json.sum }}, which matches 12." } }
+  ],
+  "connections": [
+    { "from": { "node": "Start", "port": "main", "index": 0 }, "to": { "node": "Values", "port": "main", "index": 0 } },
+    { "from": { "node": "Values", "port": "main", "index": 0 }, "to": { "node": "Add", "port": "main", "index": 0 } },
+    { "from": { "node": "Add", "port": "main", "index": 0 }, "to": { "node": "Matches 12?", "port": "main", "index": 0 } },
+    { "from": { "node": "Matches 12?", "port": "main", "index": 0 }, "to": { "node": "Send mail", "port": "main", "index": 0 } }
+  ]
+}

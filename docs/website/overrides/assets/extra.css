@@ -1,0 +1,17 @@
+:root {
+  --md-primary-fg-color: #8c2f39;
+  --md-primary-fg-color--light: #b23a48;
+  --md-primary-fg-color--dark: #5e1f26;
+  --md-accent-fg-color: #d1495b;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #5e1f26;
+  --md-accent-fg-color: #ef7a85;
+}
+
+/* Wide reference tables (config, node parameters) scroll instead of squashing. */
+.md-typeset table:not([class]) {
+  display: table;
+  font-size: 0.72rem;
+}

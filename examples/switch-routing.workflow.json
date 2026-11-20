@@ -1,0 +1,210 @@
+{
+  "name": "Switch routing",
+  "nodes": [
+    {
+      "name": "Start",
+      "type": "engi.trigger.manual",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "name": "By priority",
+      "type": "engi.flow.switch",
+      "typeVersion": 1,
+      "position": [
+        220,
+        200
+      ],
+      "parameters": {
+        "mode": "rules",
+        "fallback": "fallback",
+        "rules": [
+          {
+            "combinator": "and",
+            "conditions": [
+              {
+                "left": "={{ $json.priority }}",
+                "operator": "string:equals",
+                "right": "high"
+              }
+            ]
+          },
+          {
+            "combinator": "and",
+            "conditions": [
+              {
+                "left": "={{ $json.priority }}",
+                "operator": "string:equals",
+                "right": "low"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "Page on-call",
+      "type": "engi.transform.set",
+      "typeVersion": 1,
+      "position": [
+        440,
+        60
+      ],
+      "parameters": {
+        "fields": [
+          {
+            "name": "route",
+            "type": "string",
+            "value": "page-oncall"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Queue for later",
+      "type": "engi.transform.set",
+      "typeVersion": 1,
+      "position": [
+        440,
+        200
+      ],
+      "parameters": {
+        "fields": [
+          {
+            "name": "route",
+            "type": "string",
+            "value": "backlog"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Triage by hand",
+      "type": "engi.transform.set",
+      "typeVersion": 1,
+      "position": [
+        440,
+        340
+      ],
+      "parameters": {
+        "fields": [
+          {
+            "name": "route",
+            "type": "string",
+            "value": "manual-triage"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Handled",
+      "type": "engi.flow.merge",
+      "typeVersion": 1,
+      "position": [
+        660,
+        130
+      ],
+      "parameters": {
+        "mode": "append"
+      }
+    },
+    {
+      "name": "Unrouted",
+      "type": "engi.flow.noop",
+      "typeVersion": 1,
+      "position": [
+        660,
+        340
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": {
+        "node": "Start",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "By priority",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "By priority",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Page on-call",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "By priority",
+        "port": "main",
+        "index": 1
+      },
+      "to": {
+        "node": "Queue for later",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "By priority",
+        "port": "main",
+        "index": 8
+      },
+      "to": {
+        "node": "Triage by hand",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Page on-call",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Handled",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Queue for later",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Handled",
+        "port": "main",
+        "index": 1
+      }
+    },
+    {
+      "from": {
+        "node": "Triage by hand",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Unrouted",
+        "port": "main",
+        "index": 0
+      }
+    }
+  ]
+}
