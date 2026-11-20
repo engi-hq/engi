@@ -1,0 +1,99 @@
+{
+  "phases": [
+    {
+      "order": [
+        "Start#0",
+        "Gate#0",
+        "Right#0",
+        "Merge#0"
+      ],
+      "runData": {
+        "Gate": [
+          {
+            "from": [
+              "Start#0.0"
+            ],
+            "output": [
+              [],
+              [
+                {
+                  "json": {
+                    "n": 1
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ],
+        "Merge": [
+          {
+            "from": [
+              "Right#0.0"
+            ],
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 1,
+                    "side": "right"
+                  },
+                  "pairedItem": [
+                    "1:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ],
+        "Right": [
+          {
+            "from": [
+              "Start#0.0"
+            ],
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 1,
+                    "side": "right"
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ],
+        "Start": [
+          {
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 1
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ]
+      },
+      "status": "success"
+    }
+  ]
+}

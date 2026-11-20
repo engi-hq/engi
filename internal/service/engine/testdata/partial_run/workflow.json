@@ -1,0 +1,100 @@
+{
+  "name": "partial_run",
+  "nodes": [
+    {
+      "name": "Start",
+      "type": "test.trigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "A",
+      "type": "test.noop",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ]
+    },
+    {
+      "name": "B",
+      "type": "test.noop",
+      "typeVersion": 1,
+      "position": [
+        400,
+        0
+      ]
+    },
+    {
+      "name": "C",
+      "type": "test.noop",
+      "typeVersion": 1,
+      "position": [
+        600,
+        0
+      ]
+    },
+    {
+      "name": "D",
+      "type": "test.noop",
+      "typeVersion": 1,
+      "position": [
+        400,
+        100
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": {
+        "node": "Start",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "A",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "A",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "B",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "B",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "C",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "A",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "D",
+        "port": "main",
+        "index": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,179 @@
+{
+  "phases": [
+    {
+      "order": [
+        "Start#0",
+        "Inc#0",
+        "More#0",
+        "Inc#1",
+        "More#1",
+        "Inc#2",
+        "More#2",
+        "Done#0"
+      ],
+      "runData": {
+        "Done": [
+          {
+            "from": [
+              "More#2.1"
+            ],
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 3
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ],
+        "Inc": [
+          {
+            "from": [
+              "Start#0.0"
+            ],
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 1
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          },
+          {
+            "from": [
+              "More#0.0"
+            ],
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 2
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 1,
+            "status": "success"
+          },
+          {
+            "from": [
+              "More#1.0"
+            ],
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 3
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 2,
+            "status": "success"
+          }
+        ],
+        "More": [
+          {
+            "from": [
+              "Inc#0.0"
+            ],
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 1
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ],
+              []
+            ],
+            "runIndex": 0,
+            "status": "success"
+          },
+          {
+            "from": [
+              "Inc#1.0"
+            ],
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 2
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ],
+              []
+            ],
+            "runIndex": 1,
+            "status": "success"
+          },
+          {
+            "from": [
+              "Inc#2.0"
+            ],
+            "output": [
+              [],
+              [
+                {
+                  "json": {
+                    "n": 3
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 2,
+            "status": "success"
+          }
+        ],
+        "Start": [
+          {
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 0
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ]
+      },
+      "status": "success"
+    }
+  ]
+}

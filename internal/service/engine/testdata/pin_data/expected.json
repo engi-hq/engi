@@ -1,0 +1,92 @@
+{
+  "phases": [
+    {
+      "order": [
+        "Start#0",
+        "Fetch#0",
+        "Use#0"
+      ],
+      "runData": {
+        "Fetch": [
+          {
+            "from": [
+              "Start#0.0"
+            ],
+            "output": [
+              [
+                {
+                  "json": {
+                    "id": "pinned-1"
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                },
+                {
+                  "json": {
+                    "id": "pinned-2"
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "pinned"
+          }
+        ],
+        "Start": [
+          {
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 1
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ],
+        "Use": [
+          {
+            "from": [
+              "Fetch#0.0"
+            ],
+            "output": [
+              [
+                {
+                  "json": {
+                    "id": "pinned-1",
+                    "seen": "pinned-1"
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                },
+                {
+                  "json": {
+                    "id": "pinned-2",
+                    "seen": "pinned-2"
+                  },
+                  "pairedItem": [
+                    "0:1"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ]
+      },
+      "status": "success"
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "name": "merge_waitall",
+  "nodes": [
+    {
+      "name": "Start",
+      "type": "test.trigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Left",
+      "type": "test.set",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ],
+      "parameters": {
+        "values": {
+          "side": "left"
+        }
+      }
+    },
+    {
+      "name": "Right",
+      "type": "test.set",
+      "typeVersion": 1,
+      "position": [
+        200,
+        100
+      ],
+      "parameters": {
+        "values": {
+          "side": "right"
+        }
+      }
+    },
+    {
+      "name": "Merge",
+      "type": "test.merge",
+      "typeVersion": 1,
+      "position": [
+        400,
+        50
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": {
+        "node": "Start",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Left",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Start",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Right",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Left",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Merge",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Right",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Merge",
+        "port": "main",
+        "index": 1
+      }
+    }
+  ]
+}

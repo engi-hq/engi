@@ -1,0 +1,99 @@
+{
+  "name": "loop_until_done",
+  "nodes": [
+    {
+      "name": "Start",
+      "type": "test.trigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Inc",
+      "type": "test.set",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ],
+      "parameters": {
+        "values": {
+          "n": "={{ $json.n + 1 }}"
+        }
+      }
+    },
+    {
+      "name": "More",
+      "type": "test.if",
+      "typeVersion": 1,
+      "position": [
+        400,
+        0
+      ],
+      "parameters": {
+        "condition": "={{ $json.n < 3 }}"
+      }
+    },
+    {
+      "name": "Done",
+      "type": "test.noop",
+      "typeVersion": 1,
+      "position": [
+        600,
+        100
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": {
+        "node": "Start",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Inc",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Inc",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "More",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "More",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Inc",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "More",
+        "port": "main",
+        "index": 1
+      },
+      "to": {
+        "node": "Done",
+        "port": "main",
+        "index": 0
+      }
+    }
+  ]
+}

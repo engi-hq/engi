@@ -1,0 +1,94 @@
+{
+  "phases": [
+    {
+      "order": [
+        "Start#0",
+        "Broken#0",
+        "Handler#0"
+      ],
+      "runData": {
+        "Broken": [
+          {
+            "error": {
+              "httpStatus": 502,
+              "kind": "node",
+              "message": "boom",
+              "node": "Broken"
+            },
+            "from": [
+              "Start#0.0"
+            ],
+            "output": [
+              [],
+              [
+                {
+                  "error": {
+                    "httpStatus": 502,
+                    "kind": "node",
+                    "message": "boom",
+                    "node": "Broken"
+                  },
+                  "json": {
+                    "error": "boom",
+                    "n": 1
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "error"
+          }
+        ],
+        "Handler": [
+          {
+            "from": [
+              "Broken#0.1"
+            ],
+            "output": [
+              [
+                {
+                  "error": {
+                    "httpStatus": 502,
+                    "kind": "node",
+                    "message": "boom",
+                    "node": "Broken"
+                  },
+                  "json": {
+                    "error": "boom"
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ],
+        "Start": [
+          {
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 1
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ]
+      },
+      "status": "success"
+    }
+  ]
+}

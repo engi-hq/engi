@@ -1,0 +1,80 @@
+{
+  "name": "pin_data",
+  "nodes": [
+    {
+      "name": "Start",
+      "type": "test.trigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Fetch",
+      "type": "test.fail",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ],
+      "parameters": {
+        "message": "must not run"
+      }
+    },
+    {
+      "name": "Use",
+      "type": "test.set",
+      "typeVersion": 1,
+      "position": [
+        400,
+        0
+      ],
+      "parameters": {
+        "values": {
+          "seen": "={{ $json.id }}"
+        }
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": {
+        "node": "Start",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Fetch",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Fetch",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Use",
+        "port": "main",
+        "index": 0
+      }
+    }
+  ],
+  "pinData": {
+    "Fetch": [
+      {
+        "json": {
+          "id": "pinned-1"
+        }
+      },
+      {
+        "json": {
+          "id": "pinned-2"
+        }
+      }
+    ]
+  }
+}

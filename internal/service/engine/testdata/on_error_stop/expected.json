@@ -1,0 +1,53 @@
+{
+  "phases": [
+    {
+      "error": {
+        "httpStatus": 502,
+        "kind": "node",
+        "message": "boom",
+        "node": "Broken"
+      },
+      "order": [
+        "Start#0",
+        "Broken#0"
+      ],
+      "runData": {
+        "Broken": [
+          {
+            "error": {
+              "httpStatus": 502,
+              "kind": "node",
+              "message": "boom",
+              "node": "Broken"
+            },
+            "from": [
+              "Start#0.0"
+            ],
+            "output": [],
+            "runIndex": 0,
+            "status": "error"
+          }
+        ],
+        "Start": [
+          {
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 1
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ]
+      },
+      "status": "error"
+    }
+  ]
+}

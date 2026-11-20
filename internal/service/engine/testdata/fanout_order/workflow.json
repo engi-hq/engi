@@ -1,0 +1,184 @@
+{
+  "name": "fanout_order",
+  "nodes": [
+    {
+      "name": "Start",
+      "type": "test.trigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "C",
+      "type": "test.noop",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "name": "C2",
+      "type": "test.noop",
+      "typeVersion": 1,
+      "position": [
+        400,
+        300
+      ]
+    },
+    {
+      "name": "A",
+      "type": "test.noop",
+      "typeVersion": 1,
+      "position": [
+        200,
+        100
+      ]
+    },
+    {
+      "name": "A2",
+      "type": "test.noop",
+      "typeVersion": 1,
+      "position": [
+        400,
+        100
+      ]
+    },
+    {
+      "name": "D",
+      "type": "test.noop",
+      "typeVersion": 1,
+      "position": [
+        250,
+        100
+      ]
+    },
+    {
+      "name": "D2",
+      "type": "test.noop",
+      "typeVersion": 1,
+      "position": [
+        450,
+        100
+      ]
+    },
+    {
+      "name": "B",
+      "type": "test.noop",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ]
+    },
+    {
+      "name": "B2",
+      "type": "test.noop",
+      "typeVersion": 1,
+      "position": [
+        400,
+        200
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": {
+        "node": "Start",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "C",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Start",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "B",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Start",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "D",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Start",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "A",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "C",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "C2",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "B",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "B2",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "D",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "D2",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "A",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "A2",
+        "port": "main",
+        "index": 0
+      }
+    }
+  ]
+}

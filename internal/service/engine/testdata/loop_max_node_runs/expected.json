@@ -1,0 +1,162 @@
+{
+  "phases": [
+    {
+      "error": {
+        "kind": "workflow",
+        "message": "node ran 3 times, the limit is 3 (possible infinite loop)",
+        "node": "Inc"
+      },
+      "order": [
+        "Start#0",
+        "Inc#0",
+        "Always#0",
+        "Inc#1",
+        "Always#1",
+        "Inc#2",
+        "Always#2"
+      ],
+      "runData": {
+        "Always": [
+          {
+            "from": [
+              "Inc#0.0"
+            ],
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 1
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ],
+              []
+            ],
+            "runIndex": 0,
+            "status": "success"
+          },
+          {
+            "from": [
+              "Inc#1.0"
+            ],
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 2
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ],
+              []
+            ],
+            "runIndex": 1,
+            "status": "success"
+          },
+          {
+            "from": [
+              "Inc#2.0"
+            ],
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 3
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ],
+              []
+            ],
+            "runIndex": 2,
+            "status": "success"
+          }
+        ],
+        "Inc": [
+          {
+            "from": [
+              "Start#0.0"
+            ],
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 1
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          },
+          {
+            "from": [
+              "Always#0.0"
+            ],
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 2
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 1,
+            "status": "success"
+          },
+          {
+            "from": [
+              "Always#1.0"
+            ],
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 3
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 2,
+            "status": "success"
+          }
+        ],
+        "Start": [
+          {
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 0
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ]
+      },
+      "status": "error"
+    }
+  ]
+}

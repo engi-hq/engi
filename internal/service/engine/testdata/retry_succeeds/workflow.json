@@ -1,0 +1,68 @@
+{
+  "name": "retry_succeeds",
+  "nodes": [
+    {
+      "name": "Start",
+      "type": "test.trigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Flaky",
+      "type": "test.flaky",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ],
+      "parameters": {
+        "succeedOn": 3
+      },
+      "settings": {
+        "retry": {
+          "maxAttempts": 3,
+          "backoff": "exponential",
+          "initialDelayMs": 100
+        }
+      }
+    },
+    {
+      "name": "After",
+      "type": "test.noop",
+      "typeVersion": 1,
+      "position": [
+        400,
+        0
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": {
+        "node": "Start",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Flaky",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Flaky",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "After",
+        "port": "main",
+        "index": 0
+      }
+    }
+  ]
+}

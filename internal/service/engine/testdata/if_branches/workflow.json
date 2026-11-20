@@ -1,0 +1,92 @@
+{
+  "name": "if_branches",
+  "nodes": [
+    {
+      "name": "Start",
+      "type": "test.trigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Check",
+      "type": "test.if",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ],
+      "parameters": {
+        "condition": "={{ $json.n > 2 }}"
+      }
+    },
+    {
+      "name": "High",
+      "type": "test.set",
+      "typeVersion": 1,
+      "position": [
+        400,
+        0
+      ],
+      "parameters": {
+        "values": {
+          "branch": "high"
+        }
+      }
+    },
+    {
+      "name": "Low",
+      "type": "test.set",
+      "typeVersion": 1,
+      "position": [
+        400,
+        100
+      ],
+      "parameters": {
+        "values": {
+          "branch": "low"
+        }
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": {
+        "node": "Start",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Check",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Check",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "High",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Check",
+        "port": "main",
+        "index": 1
+      },
+      "to": {
+        "node": "Low",
+        "port": "main",
+        "index": 0
+      }
+    }
+  ]
+}

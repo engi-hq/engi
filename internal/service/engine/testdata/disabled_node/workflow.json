@@ -1,0 +1,64 @@
+{
+  "name": "disabled_node",
+  "nodes": [
+    {
+      "name": "Start",
+      "type": "test.trigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Skipped",
+      "type": "test.set",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ],
+      "parameters": {
+        "values": {
+          "n": 99
+        }
+      },
+      "disabled": true
+    },
+    {
+      "name": "End",
+      "type": "test.noop",
+      "typeVersion": 1,
+      "position": [
+        400,
+        0
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": {
+        "node": "Start",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Skipped",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Skipped",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "End",
+        "port": "main",
+        "index": 0
+      }
+    }
+  ]
+}

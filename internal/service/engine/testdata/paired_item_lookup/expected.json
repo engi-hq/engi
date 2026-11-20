@@ -1,0 +1,108 @@
+{
+  "phases": [
+    {
+      "order": [
+        "Start#0",
+        "Times#0",
+        "Join#0"
+      ],
+      "runData": {
+        "Join": [
+          {
+            "from": [
+              "Times#0.0"
+            ],
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 7,
+                    "origin": 7,
+                    "prev": 70,
+                    "times10": 70,
+                    "viaNode": 7
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                },
+                {
+                  "json": {
+                    "n": 8,
+                    "origin": 8,
+                    "prev": 80,
+                    "times10": 80,
+                    "viaNode": 8
+                  },
+                  "pairedItem": [
+                    "0:1"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ],
+        "Start": [
+          {
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 7
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                },
+                {
+                  "json": {
+                    "n": 8
+                  },
+                  "pairedItem": [
+                    "0:1"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ],
+        "Times": [
+          {
+            "from": [
+              "Start#0.0"
+            ],
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 7,
+                    "times10": 70
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                },
+                {
+                  "json": {
+                    "n": 8,
+                    "times10": 80
+                  },
+                  "pairedItem": [
+                    "0:1"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ]
+      },
+      "status": "success"
+    }
+  ]
+}

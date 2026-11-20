@@ -1,0 +1,128 @@
+{
+  "phases": [
+    {
+      "order": [
+        "Start#0",
+        "Broken#0",
+        "After#0"
+      ],
+      "runData": {
+        "After": [
+          {
+            "from": [
+              "Broken#0.0"
+            ],
+            "output": [
+              [
+                {
+                  "error": {
+                    "httpStatus": 502,
+                    "kind": "node",
+                    "message": "boom",
+                    "node": "Broken"
+                  },
+                  "json": {
+                    "error": "boom"
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                },
+                {
+                  "error": {
+                    "httpStatus": 502,
+                    "kind": "node",
+                    "message": "boom",
+                    "node": "Broken"
+                  },
+                  "json": {
+                    "error": "boom"
+                  },
+                  "pairedItem": [
+                    "0:1"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ],
+        "Broken": [
+          {
+            "error": {
+              "httpStatus": 502,
+              "kind": "node",
+              "message": "boom",
+              "node": "Broken"
+            },
+            "from": [
+              "Start#0.0"
+            ],
+            "output": [
+              [
+                {
+                  "error": {
+                    "httpStatus": 502,
+                    "kind": "node",
+                    "message": "boom",
+                    "node": "Broken"
+                  },
+                  "json": {
+                    "error": "boom"
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                },
+                {
+                  "error": {
+                    "httpStatus": 502,
+                    "kind": "node",
+                    "message": "boom",
+                    "node": "Broken"
+                  },
+                  "json": {
+                    "error": "boom"
+                  },
+                  "pairedItem": [
+                    "0:1"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "error"
+          }
+        ],
+        "Start": [
+          {
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 1
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                },
+                {
+                  "json": {
+                    "n": 2
+                  },
+                  "pairedItem": [
+                    "0:1"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ]
+      },
+      "status": "success"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "name": "empty_output_stops_branch",
+  "nodes": [
+    {
+      "name": "Start",
+      "type": "test.trigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Nothing",
+      "type": "test.empty",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ]
+    },
+    {
+      "name": "After",
+      "type": "test.noop",
+      "typeVersion": 1,
+      "position": [
+        400,
+        0
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": {
+        "node": "Start",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Nothing",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Nothing",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "After",
+        "port": "main",
+        "index": 0
+      }
+    }
+  ]
+}

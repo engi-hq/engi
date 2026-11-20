@@ -1,0 +1,62 @@
+{
+  "phases": [
+    {
+      "order": [
+        "Start#0",
+        "Bad#0"
+      ],
+      "runData": {
+        "Bad": [
+          {
+            "error": {
+              "kind": "node",
+              "message": "expression in node \"Bad\" parameter \"values\" (item 0): TypeError: Cannot read property 'field' of undefined",
+              "node": "Bad"
+            },
+            "from": [
+              "Start#0.0"
+            ],
+            "output": [
+              [
+                {
+                  "error": {
+                    "kind": "node",
+                    "message": "expression in node \"Bad\" parameter \"values\" (item 0): TypeError: Cannot read property 'field' of undefined",
+                    "node": "Bad"
+                  },
+                  "json": {
+                    "error": "expression in node \"Bad\" parameter \"values\" (item 0): TypeError: Cannot read property 'field' of undefined"
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "error"
+          }
+        ],
+        "Start": [
+          {
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 1
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ]
+      },
+      "status": "success"
+    }
+  ]
+}

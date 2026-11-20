@@ -1,0 +1,45 @@
+{
+  "name": "expression_error",
+  "nodes": [
+    {
+      "name": "Start",
+      "type": "test.trigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Bad",
+      "type": "test.set",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ],
+      "parameters": {
+        "values": {
+          "x": "={{ $json.missing.field }}"
+        }
+      },
+      "settings": {
+        "onError": "continue"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": {
+        "node": "Start",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Bad",
+        "port": "main",
+        "index": 0
+      }
+    }
+  ]
+}

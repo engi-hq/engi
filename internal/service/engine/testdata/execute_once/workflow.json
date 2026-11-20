@@ -1,0 +1,45 @@
+{
+  "name": "execute_once",
+  "nodes": [
+    {
+      "name": "Start",
+      "type": "test.trigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Once",
+      "type": "test.set",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ],
+      "parameters": {
+        "values": {
+          "done": true
+        }
+      },
+      "settings": {
+        "executeOnce": true
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": {
+        "node": "Start",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Once",
+        "port": "main",
+        "index": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "name": "loop_max_node_runs",
+  "nodes": [
+    {
+      "name": "Start",
+      "type": "test.trigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Inc",
+      "type": "test.set",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ],
+      "parameters": {
+        "values": {
+          "n": "={{ $json.n + 1 }}"
+        }
+      }
+    },
+    {
+      "name": "Always",
+      "type": "test.if",
+      "typeVersion": 1,
+      "position": [
+        400,
+        0
+      ],
+      "parameters": {
+        "condition": "={{ true }}"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": {
+        "node": "Start",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Inc",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Inc",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Always",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Always",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Inc",
+        "port": "main",
+        "index": 0
+      }
+    }
+  ]
+}

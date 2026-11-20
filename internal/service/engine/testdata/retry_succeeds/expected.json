@@ -1,0 +1,79 @@
+{
+  "phases": [
+    {
+      "order": [
+        "Start#0",
+        "Flaky#0",
+        "After#0"
+      ],
+      "runData": {
+        "After": [
+          {
+            "from": [
+              "Flaky#0.0"
+            ],
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 1
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ],
+        "Flaky": [
+          {
+            "attempts": 3,
+            "from": [
+              "Start#0.0"
+            ],
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 1
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ],
+        "Start": [
+          {
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 1
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ]
+      },
+      "sleepsMs": [
+        100,
+        200
+      ],
+      "status": "success"
+    }
+  ]
+}

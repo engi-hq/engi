@@ -1,0 +1,85 @@
+{
+  "name": "on_error_error_output",
+  "nodes": [
+    {
+      "name": "Start",
+      "type": "test.trigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Broken",
+      "type": "test.fail",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ],
+      "parameters": {
+        "message": "boom"
+      },
+      "settings": {
+        "onError": "errorOutput"
+      }
+    },
+    {
+      "name": "Happy",
+      "type": "test.noop",
+      "typeVersion": 1,
+      "position": [
+        400,
+        0
+      ]
+    },
+    {
+      "name": "Handler",
+      "type": "test.noop",
+      "typeVersion": 1,
+      "position": [
+        400,
+        100
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": {
+        "node": "Start",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Broken",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Broken",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Happy",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Broken",
+        "port": "main",
+        "index": 1
+      },
+      "to": {
+        "node": "Handler",
+        "port": "main",
+        "index": 0
+      }
+    }
+  ]
+}

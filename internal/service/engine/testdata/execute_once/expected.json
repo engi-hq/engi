@@ -1,0 +1,69 @@
+{
+  "phases": [
+    {
+      "order": [
+        "Start#0",
+        "Once#0"
+      ],
+      "runData": {
+        "Once": [
+          {
+            "from": [
+              "Start#0.0"
+            ],
+            "output": [
+              [
+                {
+                  "json": {
+                    "done": true,
+                    "n": 1
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ],
+        "Start": [
+          {
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 1
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                },
+                {
+                  "json": {
+                    "n": 2
+                  },
+                  "pairedItem": [
+                    "0:1"
+                  ]
+                },
+                {
+                  "json": {
+                    "n": 3
+                  },
+                  "pairedItem": [
+                    "0:2"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ]
+      },
+      "status": "success"
+    }
+  ]
+}

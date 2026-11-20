@@ -1,0 +1,70 @@
+{
+  "name": "paired_item_lookup",
+  "nodes": [
+    {
+      "name": "Start",
+      "type": "test.trigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Times",
+      "type": "test.set",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ],
+      "parameters": {
+        "values": {
+          "times10": "={{ $json.n * 10 }}"
+        }
+      }
+    },
+    {
+      "name": "Join",
+      "type": "test.set",
+      "typeVersion": 1,
+      "position": [
+        400,
+        0
+      ],
+      "parameters": {
+        "values": {
+          "origin": "={{ $(\"Start\").item.json.n }}",
+          "prev": "={{ $(\"Times\").item.json.times10 }}",
+          "viaNode": "={{ $node[\"Start\"].json.n }}"
+        }
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": {
+        "node": "Start",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Times",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Times",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Join",
+        "port": "main",
+        "index": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "name": "wait_resume",
+  "nodes": [
+    {
+      "name": "Start",
+      "type": "test.trigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Pause",
+      "type": "test.wait",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ]
+    },
+    {
+      "name": "After",
+      "type": "test.set",
+      "typeVersion": 1,
+      "position": [
+        400,
+        0
+      ],
+      "parameters": {
+        "values": {
+          "resumed": true
+        }
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": {
+        "node": "Start",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Pause",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Pause",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "After",
+        "port": "main",
+        "index": 0
+      }
+    }
+  ]
+}

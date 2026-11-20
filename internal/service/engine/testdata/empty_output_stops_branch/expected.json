@@ -1,0 +1,43 @@
+{
+  "phases": [
+    {
+      "order": [
+        "Start#0",
+        "Nothing#0"
+      ],
+      "runData": {
+        "Nothing": [
+          {
+            "from": [
+              "Start#0.0"
+            ],
+            "output": [
+              []
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ],
+        "Start": [
+          {
+            "output": [
+              [
+                {
+                  "json": {
+                    "n": 1
+                  },
+                  "pairedItem": [
+                    "0:0"
+                  ]
+                }
+              ]
+            ],
+            "runIndex": 0,
+            "status": "success"
+          }
+        ]
+      },
+      "status": "success"
+    }
+  ]
+}

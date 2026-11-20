@@ -1,0 +1,68 @@
+{
+  "name": "linear",
+  "nodes": [
+    {
+      "name": "Start",
+      "type": "test.trigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "Double",
+      "type": "test.set",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ],
+      "parameters": {
+        "values": {
+          "n": "={{ $json.n * 2 }}"
+        }
+      }
+    },
+    {
+      "name": "Label",
+      "type": "test.set",
+      "typeVersion": 1,
+      "position": [
+        400,
+        0
+      ],
+      "parameters": {
+        "values": {
+          "label": "=n is {{ $json.n }}"
+        }
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": {
+        "node": "Start",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Double",
+        "port": "main",
+        "index": 0
+      }
+    },
+    {
+      "from": {
+        "node": "Double",
+        "port": "main",
+        "index": 0
+      },
+      "to": {
+        "node": "Label",
+        "port": "main",
+        "index": 0
+      }
+    }
+  ]
+}
