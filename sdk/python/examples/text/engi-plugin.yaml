@@ -1,0 +1,6 @@
+name: example-python-text
+version: 0.1.0
+description: Example Python plugin that reverses a text field.
+runtime:
+  command: [python3, main.py]
+nodes: [example.python.reverse]

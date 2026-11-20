@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "engi-plugin"
+version = "0.1.0"
+description = "SDK for writing Engi plugins (Engi Plugin Protocol v1). Standard library only."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+dependencies = []
+
+[tool.setuptools]
+packages = ["engi_plugin"]

@@ -1,0 +1,6 @@
+name: example-ts-text
+version: 0.1.0
+description: Example TypeScript plugin that reverses a text field.
+runtime:
+  command: [node, main.mjs]
+nodes: [example.ts.reverse]

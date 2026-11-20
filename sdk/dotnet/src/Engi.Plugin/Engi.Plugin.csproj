@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>12.0</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>Engi.Plugin</PackageId>
+    <Version>0.1.0</Version>
+    <Description>SDK for writing Engi plugins (Engi Plugin Protocol v1) in C#.</Description>
+  </PropertyGroup>
+
+</Project>

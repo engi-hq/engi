@@ -1,0 +1,7 @@
+name: example-dotnet-text
+version: 0.1.0
+description: Example C# plugin that reverses a text field.
+runtime:
+  # Framework-dependent publish output; needs the .NET runtime (8 or newer) on PATH.
+  command: [dotnet, dist/Text.dll]
+nodes: [example.dotnet.reverse]
