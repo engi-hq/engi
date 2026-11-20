@@ -1,0 +1,18 @@
+{{- if and (not (include "engi.isCluster" .)) .Values.standalone.persistence.enabled (not .Values.standalone.persistence.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "engi.fullname" . }}-data
+  labels: {{- include "engi.labels" . | nindent 4 }}
+  annotations:
+    # The SQLite database and binary data live here: keep them if the release is removed.
+    helm.sh/resource-policy: keep
+spec:
+  accessModes: {{- toYaml .Values.standalone.persistence.accessModes | nindent 4 }}
+  {{- with .Values.standalone.persistence.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.standalone.persistence.size }}
+{{- end }}

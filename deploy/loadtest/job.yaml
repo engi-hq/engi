@@ -1,0 +1,23 @@
+# Runs the load test inside the cluster. Edit args/env, then:
+#   kubectl -n engi create -f deploy/loadtest/job.yaml && kubectl -n engi logs -f job/engi-loadtest
+# The password comes from the environment so it never sits in the manifest; here it is the smoke owner.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: engi-loadtest-
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: loadtest
+          image: engi-loadtest:dev
+          imagePullPolicy: IfNotPresent
+          args: ["-requests=2000", "-rate=20", "-work=200ms", "-timeout=10m"]
+          env:
+            - {name: LOADTEST_API, value: "http://engi-api:8080"}
+            - {name: LOADTEST_WEBHOOK, value: "http://engi-webhook:8080"}
+            - {name: LOADTEST_EMAIL, value: "smoke@example.com"}
+            - {name: LOADTEST_PASSWORD, value: "smoke-test-password-1"}

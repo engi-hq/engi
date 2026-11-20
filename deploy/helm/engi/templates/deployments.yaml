@@ -1,0 +1,108 @@
+{{- $cluster := include "engi.isCluster" . }}
+{{- range $role := splitList "," (include "engi.roleList" .) }}
+{{- $r := ternary (index $.Values.roles $role | default dict) $.Values.standalone (ne $role "standalone") }}
+{{- $kubeLease := and (or (eq $role "trigger") (eq $role "standalone")) (eq $.Values.lease.type "kubernetes") }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "engi.fullname" $ }}-{{ $role }}
+  labels:
+    {{- include "engi.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $role }}
+spec:
+  {{- if eq $role "standalone" }}
+  # One pod owns the SQLite file: never run two, even during a rollout.
+  replicas: 1
+  strategy: {type: Recreate}
+  {{- else if not (or (and (eq $role "worker") $.Values.keda.worker.enabled) (and (eq $role "trigger") $.Values.keda.trigger.enabled)) }}
+  replicas: {{ $r.replicas }}
+  {{- end }}
+  selector:
+    matchLabels: {{- include "engi.roleLabels" (dict "root" $ "role" $role) | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "engi.roleLabels" (dict "root" $ "role" $role) | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") $ | sha256sum }}
+        {{- with $r.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with $.Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ if $kubeLease }}{{ include "engi.triggerServiceAccountName" $ }}{{ else }}{{ include "engi.serviceAccountName" $ }}{{ end }}
+      {{- /* The token is needed for a Kubernetes Lease, and for cloud workload identity (S3 without keys). */}}
+      automountServiceAccountToken: {{ or $kubeLease (and (eq (include "engi.blobDriver" $) "s3") (not $.Values.blobs.s3.existingSecret)) }}
+      terminationGracePeriodSeconds: {{ $r.terminationGracePeriodSeconds }}
+      securityContext: {{- toYaml $.Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: engi
+          image: {{ include "engi.image" $ | quote }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          args: [serve]
+          securityContext: {{- toYaml $.Values.containerSecurityContext | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "engi.fullname" $ }}
+          env:
+            {{- if ne $role "standalone" }}
+            - name: ENGI_ROLES
+              value: {{ $role }}
+            {{- else }}
+            # One pod: it migrates its own database on start.
+            - {name: ENGI_SERVER_AUTO_MIGRATE, value: "true"}
+            {{- end }}
+            {{- include "engi.storeEnv" $ | nindent 12 }}
+            {{- if $kubeLease }}
+            - name: ENGI_LEASE_TYPE
+              value: kubernetes
+            - name: ENGI_LEASE_NAME
+              value: {{ $.Values.lease.name | quote }}
+            - name: ENGI_LEASE_NAMESPACE
+              valueFrom: {fieldRef: {fieldPath: metadata.namespace}}
+            - name: ENGI_LEASE_IDENTITY
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
+            {{- else if $cluster }}
+            - name: ENGI_LEASE_TYPE
+              value: postgres
+            {{- else }}
+            - name: ENGI_LEASE_TYPE
+              value: local
+            {{- end }}
+            {{- with $r.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          ports:
+            - {name: http, containerPort: {{ $.Values.port }}}
+          livenessProbe:
+            httpGet: {path: {{ $.Values.probes.liveness.path }}, port: http}
+            periodSeconds: {{ $.Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ $.Values.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ $.Values.probes.liveness.failureThreshold }}
+          readinessProbe:
+            httpGet: {path: {{ $.Values.probes.readiness.path }}, port: http}
+            periodSeconds: {{ $.Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ $.Values.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ $.Values.probes.readiness.failureThreshold }}
+          startupProbe:
+            httpGet: {path: {{ $.Values.probes.startup.path }}, port: http}
+            periodSeconds: {{ $.Values.probes.startup.periodSeconds }}
+            failureThreshold: {{ $.Values.probes.startup.failureThreshold }}
+          resources: {{- toYaml $r.resources | nindent 12 }}
+          volumeMounts: {{- include "engi.volumeMounts" $ | nindent 12 }}
+      volumes: {{- include "engi.volumes" $ | nindent 8 }}
+      {{- with $r.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $r.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $r.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $r.topologySpreadConstraints }}
+      topologySpreadConstraints: {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

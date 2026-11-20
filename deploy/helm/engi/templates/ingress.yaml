@@ -1,0 +1,37 @@
+{{- range $role := list "api" "webhook" }}
+{{- $ing := index $.Values.ingress $role }}
+{{- if and $ing.enabled (or (not (include "engi.isCluster" $)) (index $.Values.roles $role).enabled) }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "engi.fullname" $ }}-{{ $role }}
+  labels:
+    {{- include "engi.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $role }}
+  {{- with $ing.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with $ing.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with $ing.tls }}
+  tls: {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range $ing.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ . }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "engi.fullname" $ }}-{{ $role }}
+                port: {name: http}
+          {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}

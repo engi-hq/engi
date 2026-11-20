@@ -1,0 +1,36 @@
+# Engi in Docker, on infrastructure you already run.
+#
+#   cp .env.example .env      # set ENGI_ENCRYPTION_KEYS, and your Postgres / S3 if you have them
+#   docker compose up -d
+#
+# With only the key set, Engi runs standalone: SQLite and binary data in the
+# engi-data volume. Point ENGI_STORE_* at your Postgres and ENGI_BLOB_* at your
+# bucket (see .env.example) to use them instead. To try Postgres without one,
+# add the local overlay: docker compose -f docker-compose.yml -f docker-compose.postgres.yml up -d
+#
+# Build the image first (`make image IMAGE=engi:dev`) or set ENGI_IMAGE.
+name: engi
+
+services:
+  engi:
+    image: ${ENGI_IMAGE:-engi:dev}
+    restart: unless-stopped
+    ports:
+      - "${ENGI_PORT:-8080}:8080"
+    # Every ENGI_* setting of docs/11 can go in .env.
+    env_file: .env
+    environment:
+      # One container runs every role, so it migrates its database on start.
+      ENGI_SERVER_AUTO_MIGRATE: "true"
+    volumes:
+      - engi-data:/data
+    # The image is distroless: its healthcheck is the engi binary itself.
+    healthcheck:
+      test: ["CMD", "/engi", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+volumes:
+  engi-data:

@@ -1,0 +1,15 @@
+{
+  "name": "Kafka demo: order total",
+  "nodes": [
+    {"name": "Orders", "type": "engi.trigger.kafka", "position": [0, 0],
+     "parameters": {"topics": "orders", "startOffset": "earliest", "mode": "perMessage", "valueFormat": "json"},
+     "credentials": {"engi.kafka": "CREDENTIAL_ID"}},
+    {"name": "Total", "type": "engi.transform.set", "position": [1, 0],
+     "parameters": {"fields": [
+       {"name": "orderId", "type": "string", "value": "={{ $json.value.orderId }}"},
+       {"name": "customer", "type": "string", "value": "={{ $json.value.customer }}"},
+       {"name": "total", "type": "number", "value": "={{ $json.value.qty * $json.value.price }}"}
+     ], "keepOtherFields": false}}
+  ],
+  "connections": [{"from": {"node": "Orders"}, "to": {"node": "Total"}}]
+}

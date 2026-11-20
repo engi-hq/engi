@@ -1,0 +1,199 @@
+name: release
+
+# Publishes a signed multi-arch image, release binaries and SBOMs for a version tag.
+# Process and verification: docs/13-dev-guide.md (13.12) and docs/11-deployment.md (11.1).
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to build, e.g. v0.1.0 (run the workflow from that tag so the signing identity matches)
+        required: true
+        type: string
+
+# Least privilege by default; each job asks for what it needs.
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  meta:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
+      version: ${{ steps.v.outputs.version }}
+      prerelease: ${{ steps.v.outputs.prerelease }}
+      image: ${{ steps.v.outputs.image }}
+    steps:
+      - id: v
+        env:
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          tag="${INPUT_TAG:-$REF_NAME}"
+          if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "tag '$tag' is not a semantic version like v1.2.3 or v1.2.3-rc.1" >&2
+            exit 1
+          fi
+          prerelease=false
+          [[ "$tag" == *-* ]] && prerelease=true
+          {
+            echo "tag=$tag"
+            echo "version=${tag#v}"
+            echo "prerelease=$prerelease"
+            echo "image=ghcr.io/${OWNER,,}/engi"
+          } >> "$GITHUB_OUTPUT"
+
+  image:
+    needs: [meta]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # keyless cosign signing
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.meta.outputs.tag }}
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ${{ needs.meta.outputs.image }}
+          flavor: latest=false
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.meta.outputs.tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.meta.outputs.tag }}
+            type=raw,value=latest,enable=${{ needs.meta.outputs.prerelease == 'false' }}
+          labels: |
+            org.opencontainers.image.title=engi
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ needs.meta.outputs.version }}
+            org.opencontainers.image.licenses=Apache-2.0
+      - id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: VERSION=${{ needs.meta.outputs.version }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          sbom: true
+          provenance: mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      # Standalone SPDX SBOM of the pushed image, scanned by digest.
+      - uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          image: ${{ needs.meta.outputs.image }}@${{ steps.build.outputs.digest }}
+          format: spdx-json
+          output-file: engi-image.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+      # Sign and attest by digest only, never by tag.
+      - name: Sign image and attest SBOM
+        env:
+          IMAGE_REF: ${{ needs.meta.outputs.image }}@${{ steps.build.outputs.digest }}
+        run: |
+          cosign sign --yes "$IMAGE_REF"
+          cosign attest --yes --type spdxjson --predicate engi-image.spdx.json "$IMAGE_REF"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: image-sbom
+          path: engi-image.spdx.json
+          if-no-files-found: error
+
+  binaries:
+    needs: [meta]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        goos: [linux, darwin]
+        goarch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.meta.outputs.tag }}
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      # WEB=1 builds the editor and embeds it (-tags webui); GOOS/GOARCH cross-compile, no cgo.
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          VERSION: ${{ needs.meta.outputs.version }}
+        run: make build WEB=1 VERSION="$VERSION" BINARY="bin/engi_${VERSION}_${GOOS}_${GOARCH}"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: binary-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: bin/engi_*
+          if-no-files-found: error
+
+  release:
+    needs: [meta, image, binaries]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the GitHub release and upload assets
+      id-token: write # keyless cosign sign-blob
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.meta.outputs.tag }}
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: Checksum and sign
+        working-directory: dist
+        run: |
+          chmod +x engi_*
+          sha256sum engi_* engi-image.spdx.json > SHA256SUMS
+          cosign sign-blob --yes --bundle SHA256SUMS.sigstore.json SHA256SUMS
+      # Release notes come from the "## [X.Y.Z]" section of CHANGELOG.md; empty means
+      # fall back to GitHub's generated notes.
+      - name: Release notes
+        env:
+          VERSION: ${{ needs.meta.outputs.version }}
+        run: |
+          awk -v v="$VERSION" '
+            /^## \[/ { if (on) exit; on = index($0, "## [" v "]") == 1; next }
+            on { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ -s release-notes.md ]; then echo "NOTES_FILE=release-notes.md" >> "$GITHUB_ENV"; fi
+      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          tag_name: ${{ needs.meta.outputs.tag }}
+          name: Engi ${{ needs.meta.outputs.version }}
+          prerelease: ${{ needs.meta.outputs.prerelease == 'true' }}
+          body_path: ${{ env.NOTES_FILE }}
+          generate_release_notes: ${{ env.NOTES_FILE == '' }}
+          fail_on_unmatched_files: true
+          files: |
+            dist/engi_*
+            dist/engi-image.spdx.json
+            dist/SHA256SUMS
+            dist/SHA256SUMS.sigstore.json

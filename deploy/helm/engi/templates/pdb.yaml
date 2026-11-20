@@ -1,0 +1,21 @@
+{{- if include "engi.isCluster" . }}
+{{- range $role := splitList "," (include "engi.roleList" .) }}
+{{- $r := index $.Values.roles $role }}
+{{- if $r.pdb.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "engi.fullname" $ }}-{{ $role }}
+  labels: {{- include "engi.labels" $ | nindent 4 }}
+spec:
+  {{- if hasKey $r.pdb "minAvailable" }}
+  minAvailable: {{ $r.pdb.minAvailable }}
+  {{- else }}
+  maxUnavailable: {{ $r.pdb.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels: {{- include "engi.roleLabels" (dict "root" $ "role" $role) | nindent 6 }}
+{{- end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,286 @@
+# Engi Helm chart values. Every key below is documented in docs/11-deployment.md (section 11.4).
+
+image:
+  repository: engi
+  # Defaults to the chart appVersion.
+  tag: ""
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# HTTP port every role listens on (ENGI_SERVER_ADDR). Probes and Services use it.
+port: 8080
+
+# Absolute address clients and external services reach Engi at, for example
+# https://engi.example.com (ENGI_SERVER_PUBLIC_URL). Engi builds the absolute
+# links it hands out on it, such as the resume URL of a Wait node. In cluster
+# mode set it to the external address of the webhook role (the Ingress that
+# routes /hook-wait). Empty keeps the binary default, http://localhost:8080.
+publicUrl: ""
+
+# How Engi runs. Empty picks it from what you configured:
+#   standalone  one pod, every role, SQLite and binary data on a PersistentVolume.
+#               Needs nothing else; for trying Engi and small teams.
+#   cluster     a Deployment per role (api, webhook, trigger, worker), scaled
+#               independently. Needs your Postgres (postgres.*) and, for binary
+#               data shared between pods, your S3-compatible bucket (blobs.s3.*).
+# Cluster mode is chosen when postgres.host or postgres.existingSecret is set.
+mode: ""
+
+# Your Postgres (cluster mode): Engi's store, job queue, event bus and leader lease.
+# Engi creates its tables in the database you name (the migrate Job runs before
+# every install and upgrade). Give it its own database, or at least its own schema.
+postgres:
+  # Either: connection parts, with the password read from a Secret you already
+  # have (CloudNativePG, Crunchy, Bitnami, an RDS/Cloud SQL secret...).
+  host: ""
+  port: 5432
+  database: engi
+  user: engi
+  # disable, require, verify-ca or verify-full.
+  sslmode: require
+  passwordSecret:
+    name: ""
+    key: password
+  # Or: a Secret holding the full connection string (postgres://user:pass@host/db?sslmode=...).
+  existingSecret: ""
+  dsnKey: postgres-dsn
+
+# Where binary data (files, attachments) lives.
+blobs:
+  # fs or s3. Empty: fs in standalone mode (on the PersistentVolume), s3 in cluster mode.
+  driver: ""
+  # Your S3-compatible bucket: AWS S3, MinIO, Cloudflare R2, Ceph, Azure via an S3 gateway...
+  s3:
+    bucket: ""
+    region: ""
+    # Leave empty for AWS; set for anything else, e.g. http://minio.storage:9000.
+    endpoint: ""
+    # Most non-AWS stores need path-style addressing.
+    forcePathStyle: false
+    prefix: ""
+    # A Secret with the access key pair. Leave empty to use the cloud identity
+    # of the pods instead (EKS IRSA / Pod Identity, GKE or AKS workload identity
+    # federation, an instance profile): annotate serviceAccount accordingly.
+    existingSecret: ""
+    accessKeyIdKey: access-key-id
+    secretAccessKeyKey: secret-access-key
+
+# The key that encrypts stored credentials (AES-256-GCM).
+encryption:
+  # A Secret you manage, with lines of "keyId:base64-of-32-bytes" under `key`.
+  # Recommended for production (and required to rotate keys).
+  existingSecret: ""
+  key: encryption-keys
+  activeKeyId: k1
+  # Without existingSecret the chart generates one key on first install and keeps
+  # the Secret on upgrade and uninstall (helm.sh/resource-policy: keep). Back it up:
+  # credentials cannot be decrypted without it.
+
+# Standalone mode (one pod).
+standalone:
+  persistence:
+    enabled: true
+    # Use an existing PersistentVolumeClaim instead of creating one.
+    existingClaim: ""
+    storageClass: ""
+    accessModes: [ReadWriteOnce]
+    size: 5Gi
+  resources:
+    requests: {cpu: 100m, memory: 128Mi}
+    limits: {memory: 1Gi}
+  extraEnv: []
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  podAnnotations: {}
+  terminationGracePeriodSeconds: 90
+
+# Extra environment for every pod, rendered into one ConfigMap. Keys are ENGI_*
+# names (docs/11 section 11.5), values are strings. Store, blob and encryption
+# settings come from the sections above; do not set them here.
+config:
+  ENGI_METRICS_ENABLED: "true"
+  # A job whose worker died (pod killed, node lost) is retried once its lease
+  # expires and a worker's reclaim pass finds it: about leaseDuration +
+  # reclaimInterval. The binary defaults (2m + 30s) suit hosts that pause; in
+  # Kubernetes a dead pod is gone for good, so recover faster. Keep the
+  # heartbeat well below the lease so a slow but healthy worker keeps its job.
+  ENGI_QUEUE_LEASE_DURATION: "30s"
+  ENGI_QUEUE_HEARTBEAT_INTERVAL: "10s"
+  ENGI_WORKER_RECLAIM_INTERVAL: "10s"
+
+# Secrets are mounted as files under this path.
+secretsMountPath: /run/secrets/engi
+
+# Leader election for the trigger role.
+lease:
+  # postgres: advisory lock (needs nothing but the database).
+  # kubernetes: coordination.k8s.io Lease, with a Role/RoleBinding for the trigger ServiceAccount.
+  type: postgres
+  # Lease object name (kubernetes only); the namespace is the release namespace.
+  name: engi-trigger
+  duration: 15s
+  renewDeadline: 10s
+  retryPeriod: 2s
+
+serviceAccount:
+  create: true
+  annotations: {}
+
+# Per-role Deployments (cluster mode). All roles run the same image and differ in ENGI_ROLES.
+roles:
+  api:
+    enabled: true
+    replicas: 2
+    resources:
+      requests: {cpu: 100m, memory: 128Mi}
+      limits: {memory: 512Mi}
+    # Extra env (list of EnvVar) and per-role scheduling.
+    extraEnv: []
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    topologySpreadConstraints: []
+    podAnnotations: {}
+    terminationGracePeriodSeconds: 60
+    pdb: {enabled: true, maxUnavailable: 1}
+  webhook:
+    enabled: true
+    replicas: 2
+    resources:
+      requests: {cpu: 100m, memory: 128Mi}
+      limits: {memory: 512Mi}
+    extraEnv: []
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    topologySpreadConstraints: []
+    podAnnotations: {}
+    terminationGracePeriodSeconds: 150
+    pdb: {enabled: true, maxUnavailable: 1}
+  trigger:
+    enabled: true
+    # Two replicas, one active (the leader runs schedules and pollers).
+    replicas: 2
+    resources:
+      requests: {cpu: 100m, memory: 128Mi}
+      limits: {memory: 512Mi}
+    extraEnv: []
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    topologySpreadConstraints: []
+    podAnnotations: {}
+    terminationGracePeriodSeconds: 60
+    pdb: {enabled: true, minAvailable: 1}
+  worker:
+    enabled: true
+    # Ignored when keda.worker.enabled (KEDA owns the replica count).
+    replicas: 2
+    resources:
+      requests: {cpu: 250m, memory: 256Mi}
+      limits: {memory: 1Gi}
+    extraEnv: []
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    topologySpreadConstraints: []
+    podAnnotations: {}
+    # Must exceed ENGI_WORKER_SHUTDOWN_GRACE and ENGI_SERVER_SHUTDOWN_GRACE.
+    terminationGracePeriodSeconds: 90
+    pdb: {enabled: true, maxUnavailable: 1}
+
+probes:
+  liveness: {path: /healthz, periodSeconds: 10, timeoutSeconds: 2, failureThreshold: 3}
+  readiness: {path: /readyz, periodSeconds: 5, timeoutSeconds: 3, failureThreshold: 3}
+  # Gives a slow start (cold database) time before liveness applies.
+  startup: {path: /healthz, periodSeconds: 3, failureThreshold: 40}
+
+# The API/UI and the webhooks are separate Ingresses so they can use different
+# hosts, classes and annotations, and /hook* can be exposed alone.
+service:
+  type: ClusterIP
+  annotations: {}
+ingress:
+  api:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: engi.example.com
+        paths: [/]
+    tls: []
+  webhook:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: hooks.example.com
+        # Keep in line with ENGI_WEBHOOK_BASE_PATH / _TEST_BASE_PATH / _WAIT_BASE_PATH and ENGI_CHAT_BASE_PATH.
+        paths: [/hook, /hook-test, /hook-wait, /chat]
+    tls: []
+
+migrate:
+  enabled: true
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {memory: 256Mi}
+  backoffLimit: 3
+  activeDeadlineSeconds: 600
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  seccompProfile: {type: RuntimeDefault}
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities: {drop: [ALL]}
+
+networkPolicy:
+  enabled: true
+  # Peers allowed to reach the HTTP port of api and webhook (the ingress controller).
+  ingressFrom:
+    - namespaceSelector: {}
+  # Peers allowed to scrape /metrics (every role).
+  metricsFrom:
+    - namespaceSelector: {}
+  # TCP ports pods may reach on any address besides DNS: Postgres, S3/HTTPS, the Kubernetes API.
+  # Add your S3 endpoint's port if it is not 443 (MinIO often listens on 9000).
+  egressPorts: [5432, 443]
+  # Extra raw egress rules (NetworkPolicyEgressRule list), e.g. Kafka.
+  extraEgress: []
+  # Workflows call arbitrary hosts, so workers may reach any address and port.
+  workerEgressAny: true
+
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  labels: {}
+
+# KEDA (https://keda.sh) must be installed in the cluster.
+keda:
+  worker:
+    enabled: false
+    minReplicaCount: 1
+    maxReplicaCount: 10
+    pollingInterval: 15
+    cooldownPeriod: 120
+    prometheus:
+      serverAddress: http://prometheus-server.monitoring.svc:80
+      # Jobs waiting to be claimed (engi_queue_depth); every pod reports the same shared queue, so take the max.
+      query: max(engi_queue_depth)
+      threshold: "10"
+  trigger:
+    enabled: false
+    minReplicaCount: 2
+    maxReplicaCount: 4
+    kafka:
+      bootstrapServers: ""
+      consumerGroup: ""
+      topic: ""
+      lagThreshold: "100"

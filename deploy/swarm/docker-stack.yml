@@ -1,0 +1,200 @@
+# Engi on Docker Swarm: one service per role, Docker secrets, Postgres lease.
+#
+#   printf 'k1:%s' "$(openssl rand -base64 32)" | docker secret create engi_encryption_keys -
+#   printf 'postgres://engi:PASSWORD@postgres:5432/engi?sslmode=disable' | docker secret create engi_postgres_dsn -
+#   printf 'PASSWORD' | docker secret create engi_postgres_password -
+#   openssl rand -hex 24 | tr -d '\n' | docker secret create engi_s3_secret -
+#   docker stack deploy -c docker-stack.yml engi
+#
+# Variables (shell or --env-file): ENGI_IMAGE, ENGI_HOST, ENGI_HOOK_HOST, ENGI_TAG.
+# Postgres and MinIO are optional services: remove them and point the DSN
+# secret / ENGI_BLOB_S3_ENDPOINT at external ones to use managed instances.
+# Migrations: `migrate` runs once per deploy (restart_policy: none); api, webhook,
+# trigger and worker run with server.autoMigrate=false and wait for readiness.
+
+x-engi-env: &engi-env
+  ENGI_STORE_DRIVER: postgres
+  ENGI_STORE_POSTGRES_DSN_FILE: /run/secrets/engi_postgres_dsn
+  ENGI_ENCRYPTION_KEYS_FILE: /run/secrets/engi_encryption_keys
+  ENGI_ENCRYPTION_ACTIVE_KEY_ID: ${ENGI_ENCRYPTION_ACTIVE_KEY_ID:-k1}
+  ENGI_SERVER_AUTO_MIGRATE: "false"
+  ENGI_LEASE_TYPE: postgres
+  ENGI_METRICS_ENABLED: "true"
+  # Binary data must be shared between tasks: S3/MinIO (see the minio service).
+  ENGI_BLOB_DRIVER: s3
+  ENGI_BLOB_S3_BUCKET: engi
+  ENGI_BLOB_S3_REGION: us-east-1
+  ENGI_BLOB_S3_ENDPOINT: http://minio:9000
+  ENGI_BLOB_S3_FORCE_PATH_STYLE: "true"
+  ENGI_BLOB_S3_ACCESS_KEY_ID: engi
+  ENGI_BLOB_S3_SECRET_ACCESS_KEY_FILE: /run/secrets/engi_s3_secret
+
+x-engi-secrets: &engi-secrets
+  - engi_encryption_keys
+  - engi_postgres_dsn
+  - engi_s3_secret
+
+x-engi-health: &engi-health
+  test: ["CMD", "/engi", "healthcheck"]
+  interval: 10s
+  timeout: 5s
+  retries: 6
+  start_period: 30s
+
+services:
+  migrate:
+    image: ${ENGI_IMAGE:-engi}:${ENGI_TAG:-dev}
+    command: ["migrate", "up"]
+    environment: *engi-env
+    secrets: *engi-secrets
+    networks: [internal]
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+
+  api:
+    image: ${ENGI_IMAGE:-engi}:${ENGI_TAG:-dev}
+    command: ["serve"]
+    environment:
+      <<: *engi-env
+      ENGI_ROLES: api
+    secrets: *engi-secrets
+    healthcheck: *engi-health
+    networks: [internal, edge]
+    deploy:
+      replicas: 2
+      update_config: {order: start-first, failure_action: rollback}
+      resources:
+        limits: {memory: 512M}
+        reservations: {cpus: "0.10", memory: 128M}
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=edge
+        - traefik.http.routers.engi-ui.rule=Host(`${ENGI_HOST:-engi.example.com}`)
+        - traefik.http.routers.engi-ui.entrypoints=websecure
+        - traefik.http.routers.engi-ui.tls=true
+        - traefik.http.services.engi-ui.loadbalancer.server.port=8080
+
+  webhook:
+    image: ${ENGI_IMAGE:-engi}:${ENGI_TAG:-dev}
+    command: ["serve"]
+    environment:
+      <<: *engi-env
+      ENGI_ROLES: webhook
+    secrets: *engi-secrets
+    healthcheck: *engi-health
+    networks: [internal, edge]
+    stop_grace_period: 150s
+    deploy:
+      replicas: 2
+      update_config: {order: start-first, failure_action: rollback}
+      resources:
+        limits: {memory: 512M}
+        reservations: {cpus: "0.10", memory: 128M}
+      labels:
+        # Exposes only /hook*; use another host (ENGI_HOOK_HOST) to keep hooks off the UI host.
+        - traefik.enable=true
+        - traefik.docker.network=edge
+        - traefik.http.routers.engi-hook.rule=Host(`${ENGI_HOOK_HOST:-hooks.example.com}`) && PathPrefix(`/hook`)
+        - traefik.http.routers.engi-hook.entrypoints=websecure
+        - traefik.http.routers.engi-hook.tls=true
+        - traefik.http.services.engi-hook.loadbalancer.server.port=8080
+
+  trigger:
+    image: ${ENGI_IMAGE:-engi}:${ENGI_TAG:-dev}
+    command: ["serve"]
+    environment:
+      <<: *engi-env
+      ENGI_ROLES: trigger
+    secrets: *engi-secrets
+    healthcheck: *engi-health
+    networks: [internal]
+    stop_grace_period: 60s
+    deploy:
+      # Two replicas, one leader (Postgres advisory lock).
+      replicas: 2
+      update_config: {order: stop-first, failure_action: rollback}
+      resources:
+        limits: {memory: 512M}
+        reservations: {cpus: "0.10", memory: 128M}
+
+  worker:
+    image: ${ENGI_IMAGE:-engi}:${ENGI_TAG:-dev}
+    command: ["serve"]
+    environment:
+      <<: *engi-env
+      ENGI_ROLES: worker
+    secrets: *engi-secrets
+    healthcheck: *engi-health
+    networks: [internal]
+    stop_grace_period: 90s
+    deploy:
+      replicas: 3
+      update_config: {order: stop-first, parallelism: 1, failure_action: rollback}
+      resources:
+        limits: {memory: 1G}
+        reservations: {cpus: "0.25", memory: 256M}
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: engi
+      POSTGRES_DB: engi
+      POSTGRES_PASSWORD_FILE: /run/secrets/engi_postgres_password
+    secrets: [engi_postgres_password]
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U engi -d engi"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      replicas: 1
+      placement:
+        constraints: ["node.labels.engi-db == true"]
+
+  minio:
+    image: minio/minio:latest
+    command: ["server", "/data"]
+    environment:
+      MINIO_ROOT_USER: engi
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/engi_s3_secret
+    secrets: [engi_s3_secret]
+    volumes: [minio-data:/data]
+    networks: [internal]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 1
+      placement:
+        constraints: ["node.labels.engi-db == true"]
+
+networks:
+  internal:
+    driver: overlay
+    attachable: false
+  # Existing overlay network shared with Traefik.
+  edge:
+    external: true
+    name: edge
+
+volumes:
+  postgres-data:
+  minio-data:
+
+secrets:
+  engi_encryption_keys:
+    external: true
+  engi_postgres_dsn:
+    external: true
+  engi_postgres_password:
+    external: true
+  engi_s3_secret:
+    external: true

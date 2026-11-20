@@ -1,0 +1,88 @@
+name: Bug report
+description: Something in Engi does not work as the documentation says
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. For security vulnerabilities, do not use this form;
+        see [SECURITY.md](https://github.com/engi-hq/engi/blob/main/SECURITY.md).
+
+  - type: input
+    id: engi-version
+    attributes:
+      label: Engi version
+      description: The output of `engi version`, or the image tag or commit you run.
+      placeholder: "e.g. 0.1.0 or a commit hash"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deployment-mode
+    attributes:
+      label: Deployment mode
+      options:
+        - Standalone (SQLite)
+        - Cluster (Postgres, several roles)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: How Engi was installed
+      options:
+        - Binary
+        - Docker image or Docker Compose
+        - Helm chart (Kubernetes)
+        - Docker Swarm
+        - Built from source
+        - Other (describe in the steps)
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The smallest set of steps that shows the problem. A minimal workflow JSON helps a lot.
+      placeholder: |
+        1. Import workflow ...
+        2. Run it with ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead, including any error message.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Engi's log lines around the failure. Remove credentials, tokens, keys and personal data first.
+      render: text
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues and did not find this bug.
+          required: true
+        - label: I removed secrets, encryption keys and personal data from this report.
+          required: true

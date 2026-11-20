@@ -1,0 +1,40 @@
+{{- if and (include "engi.isCluster" .) .Values.keda.worker.enabled .Values.roles.worker.enabled }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "engi.fullname" . }}-worker
+  labels: {{- include "engi.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    name: {{ include "engi.fullname" . }}-worker
+  minReplicaCount: {{ .Values.keda.worker.minReplicaCount }}
+  maxReplicaCount: {{ .Values.keda.worker.maxReplicaCount }}
+  pollingInterval: {{ .Values.keda.worker.pollingInterval }}
+  cooldownPeriod: {{ .Values.keda.worker.cooldownPeriod }}
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: {{ .Values.keda.worker.prometheus.serverAddress | quote }}
+        query: {{ .Values.keda.worker.prometheus.query | quote }}
+        threshold: {{ .Values.keda.worker.prometheus.threshold | quote }}
+{{- end }}
+{{- if and (include "engi.isCluster" .) .Values.keda.trigger.enabled .Values.roles.trigger.enabled }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "engi.fullname" . }}-trigger
+  labels: {{- include "engi.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    name: {{ include "engi.fullname" . }}-trigger
+  minReplicaCount: {{ .Values.keda.trigger.minReplicaCount }}
+  maxReplicaCount: {{ .Values.keda.trigger.maxReplicaCount }}
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: {{ required "keda.trigger.kafka.bootstrapServers is required" .Values.keda.trigger.kafka.bootstrapServers | quote }}
+        consumerGroup: {{ required "keda.trigger.kafka.consumerGroup is required" .Values.keda.trigger.kafka.consumerGroup | quote }}
+        topic: {{ required "keda.trigger.kafka.topic is required" .Values.keda.trigger.kafka.topic | quote }}
+        lagThreshold: {{ .Values.keda.trigger.kafka.lagThreshold | quote }}
+{{- end }}

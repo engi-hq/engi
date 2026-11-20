@@ -1,0 +1,60 @@
+{{- if and (include "engi.isCluster" .) .Values.migrate.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "engi.fullname" . }}-migrate
+  labels: {{- include "engi.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: {{ .Values.migrate.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.migrate.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Chart.Name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: migrate
+    spec:
+      restartPolicy: OnFailure
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- /* A pre-install hook runs before the release's own ServiceAccount, ConfigMap and generated Secret exist. */}}
+      automountServiceAccountToken: false
+      securityContext: {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: migrate
+          image: {{ include "engi.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: [migrate, "up"]
+          securityContext: {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          env:
+            - {name: ENGI_STORE_DRIVER, value: postgres}
+            {{- if .Values.postgres.existingSecret }}
+            - name: ENGI_STORE_POSTGRES_DSN_FILE
+              value: /run/secrets/engi/postgres-dsn
+            {{- else }}
+            - name: ENGI_STORE_POSTGRES_DSN
+              value: {{ include "engi.postgresDSN" . | quote }}
+            {{- with .Values.postgres.passwordSecret.name }}
+            - name: PGPASSWORD
+              valueFrom: {secretKeyRef: {name: {{ . }}, key: {{ $.Values.postgres.passwordSecret.key }}}}
+            {{- end }}
+            {{- end }}
+          resources: {{- toYaml .Values.migrate.resources | nindent 12 }}
+          {{- if .Values.postgres.existingSecret }}
+          volumeMounts:
+            - {name: dsn, mountPath: /run/secrets/engi, readOnly: true}
+          {{- end }}
+      {{- if .Values.postgres.existingSecret }}
+      volumes:
+        - name: dsn
+          secret:
+            secretName: {{ .Values.postgres.existingSecret }}
+            defaultMode: 0440
+            items: [{key: {{ .Values.postgres.dsnKey }}, path: postgres-dsn}]
+      {{- end }}
+{{- end }}

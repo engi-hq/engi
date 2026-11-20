@@ -1,0 +1,37 @@
+# Engi on infrastructure you already run. Only connection details live here;
+# passwords stay in Secrets you create (or that your operators already create).
+#
+#   kubectl -n engi create secret generic engi-postgres --from-literal=password='...'
+#   kubectl -n engi create secret generic engi-s3 \
+#     --from-literal=access-key-id='...' --from-literal=secret-access-key='...'
+#   helm install engi deploy/helm/engi -n engi -f existing-infra.yaml
+
+postgres:
+  host: postgres.infra.svc.cluster.local
+  database: engi
+  user: engi
+  # Use require (or verify-full) for a managed or TLS-enabled server.
+  sslmode: disable
+  passwordSecret: {name: engi-postgres, key: password}
+
+blobs:
+  s3:
+    bucket: engi-blobs
+    region: us-east-1
+    # MinIO in the cluster. Leave endpoint empty for AWS S3.
+    endpoint: http://minio.infra.svc.cluster.local:9000
+    forcePathStyle: true
+    # Omit to use the pods' cloud identity (IRSA, workload identity) instead of keys.
+    existingSecret: engi-s3
+
+networkPolicy:
+  # Postgres, HTTPS, and MinIO's port.
+  egressPorts: [5432, 443, 9000]
+
+# One replica per role is enough for a single-node cluster; raise for HA.
+roles:
+  api: {replicas: 1}
+  # Two webhook pods so calls keep landing while one restarts.
+  webhook: {replicas: 2}
+  trigger: {replicas: 2}
+  worker: {replicas: 2}

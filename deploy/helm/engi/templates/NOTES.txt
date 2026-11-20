@@ -1,0 +1,28 @@
+Engi is starting in {{ include "engi.mode" . }} mode.
+{{- if include "engi.isCluster" . }}
+  Store, queue and leader lease: your Postgres ({{ if .Values.postgres.existingSecret }}secret {{ .Values.postgres.existingSecret }}{{ else }}{{ .Values.postgres.host }}/{{ .Values.postgres.database }}{{ end }})
+  Binary data: {{ include "engi.blobDriver" . }}{{ if eq (include "engi.blobDriver" .) "s3" }} bucket {{ .Values.blobs.s3.bucket }}{{ end }}
+  Roles: {{ include "engi.roleList" . }}
+{{- else }}
+  One pod with SQLite and binary data on the PersistentVolumeClaim {{ default (printf "%s-data" (include "engi.fullname" .)) .Values.standalone.persistence.existingClaim }}.
+  To scale out later, point postgres.* at your Postgres and blobs.s3.* at your bucket.
+{{- end }}
+
+Open the editor:
+{{- if .Values.ingress.api.enabled }}
+  {{ range .Values.ingress.api.hosts }}http{{ if $.Values.ingress.api.tls }}s{{ end }}://{{ .host }}/{{ end }}
+{{- else }}
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "engi.fullname" . }}-api {{ .Values.port }}:{{ .Values.port }}
+  then http://localhost:{{ .Values.port }}/ and create the owner account.
+{{- end }}
+{{- if not .Values.encryption.existingSecret }}
+
+Credentials are encrypted with a key the chart generated in the Secret
+{{ include "engi.encryptionSecretName" . }}. It is kept when the release is removed.
+Back it up now; without it stored credentials cannot be read:
+  kubectl -n {{ .Release.Namespace }} get secret {{ include "engi.encryptionSecretName" . }} -o yaml > engi-encryption-key.yaml
+{{- end }}
+
+Kafka, Redis, MongoDB, MySQL, SMTP and other systems your workflows use are not
+part of this chart: add them as credentials in the editor, pointing at your
+existing services.

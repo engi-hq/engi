@@ -1,0 +1,25 @@
+# Mock producer: creates the orders topic (if missing) and sends one order event.
+# Run it again to send another: kubectl delete job order-producer -n infra --ignore-not-found
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: order-producer
+  namespace: infra
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      enableServiceLinks: false
+      containers:
+        - name: producer
+          image: apache/kafka:3.9.0
+          command: ["/bin/bash", "-ec"]
+          args:
+            - |
+              bs=kafka.infra.svc.cluster.local:9092
+              /opt/kafka/bin/kafka-topics.sh --bootstrap-server $bs --create --if-not-exists --topic orders
+              id="ord-$(date +%s)"
+              echo "{\"orderId\":\"$id\",\"customer\":\"ada\",\"qty\":3,\"price\":12.5}" |
+                /opt/kafka/bin/kafka-console-producer.sh --bootstrap-server $bs --topic orders
+              echo "sent order $id"

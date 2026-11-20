@@ -1,0 +1,41 @@
+name: Feature request
+description: Suggest a new node, feature or change
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the problem first. A proposal is easier to judge when the need is clear.
+        Check the [roadmap](https://github.com/engi-hq/engi/blob/main/docs/12-roadmap.md) before you open a request.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and what gets in the way today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What would you like Engi to do? For a node, name the service and the operations you need.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Workarounds you use today, such as the HTTP Request node or a plugin.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues and did not find this request.
+          required: true

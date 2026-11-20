@@ -1,0 +1,39 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- range $role := splitList "," (include "engi.roleList" .) }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "engi.fullname" $ }}-{{ $role }}
+  labels: {{- include "engi.labels" $ | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: {{- include "engi.roleLabels" (dict "root" $ "role" $role) | nindent 6 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    {{- if or (eq $role "api") (eq $role "webhook") (eq $role "standalone") }}
+    - from: {{- toYaml $.Values.networkPolicy.ingressFrom | nindent 8 }}
+      ports:
+        - {protocol: TCP, port: {{ $.Values.port }}}
+    {{- else }}
+    - from: {{- toYaml $.Values.networkPolicy.metricsFrom | nindent 8 }}
+      ports:
+        - {protocol: TCP, port: {{ $.Values.port }}}
+    {{- end }}
+  egress:
+    - ports:
+        - {protocol: UDP, port: 53}
+        - {protocol: TCP, port: 53}
+    {{- if and (or (eq $role "worker") (eq $role "standalone")) $.Values.networkPolicy.workerEgressAny }}
+    - {}
+    {{- else }}
+    - ports:
+        {{- range $.Values.networkPolicy.egressPorts }}
+        - {protocol: TCP, port: {{ . }}}
+        {{- end }}
+    {{- with $.Values.networkPolicy.extraEgress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}

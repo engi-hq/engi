@@ -1,0 +1,19 @@
+{{- include "engi.validate" . }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "engi.fullname" . }}
+  labels: {{- include "engi.labels" . | nindent 4 }}
+data:
+  ENGI_SERVER_ADDR: {{ printf ":%d" (int .Values.port) | quote }}
+  {{- if .Values.publicUrl }}
+  ENGI_SERVER_PUBLIC_URL: {{ .Values.publicUrl | quote }}
+  {{- end }}
+  ENGI_LEASE_DURATION: {{ .Values.lease.duration | quote }}
+  ENGI_LEASE_RENEW_DEADLINE: {{ .Values.lease.renewDeadline | quote }}
+  ENGI_LEASE_RETRY_PERIOD: {{ .Values.lease.retryPeriod | quote }}
+  {{- range $k, $v := .Values.config }}
+  {{- if ne (toString $v) "" }}
+  {{ $k }}: {{ $v | toString | quote }}
+  {{- end }}
+  {{- end }}

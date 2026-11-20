@@ -1,0 +1,38 @@
+{{- range $role := list "api" "webhook" }}
+{{- if or (not (include "engi.isCluster" $)) (index $.Values.roles $role).enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "engi.fullname" $ }}-{{ $role }}
+  labels:
+    {{- include "engi.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $role }}
+  {{- with $.Values.service.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ $.Values.service.type }}
+  selector: {{- include "engi.roleLabels" (dict "root" $ "role" (include "engi.servingRole" (dict "root" $ "role" $role))) | nindent 4 }}
+  ports:
+    - {name: http, port: {{ $.Values.port }}, targetPort: http}
+{{- end }}
+{{- end }}
+{{- /* Headless Service for the roles without one, so ServiceMonitor can select every role. */}}
+{{- if .Values.serviceMonitor.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "engi.fullname" . }}-metrics
+  labels:
+    {{- include "engi.labels" . | nindent 4 }}
+    app.kubernetes.io/component: metrics
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - {name: http, port: {{ .Values.port }}, targetPort: http}
+{{- end }}
