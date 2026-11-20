@@ -2,7 +2,7 @@
 # Pages come from docs/ unchanged; this folder (docs/website) holds only the site tooling.
 site_name: Engi えんぎ
 site_description: Self-hosted workflow automation in a single Go binary.
-site_url: https://engi-hq.github.io/engi/
+site_url: https://engi-hq.github.io/docs/
 repo_url: https://github.com/engi-hq/engi
 repo_name: engi-hq/engi
 edit_uri: edit/main/docs/

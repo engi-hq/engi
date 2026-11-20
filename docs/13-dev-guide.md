@@ -122,7 +122,7 @@ Trigger nodes additionally implement one trigger interface ([page 8](08-triggers
 
 ### Docs website
 
-`docs/` is published to <https://engi-hq.github.io/engi/> with MkDocs Material. The pages are
+`docs/` is published to <https://engi-hq.github.io/docs/> with MkDocs Material. The pages are
 used unchanged; `docs/website/` (excluded from the published pages) holds only the config, a build hook and the theme overrides.
 
 - `make docs-site` builds into `site/` (git-ignored) in a local virtualenv (`.venv-docs/`), with
@@ -134,8 +134,12 @@ used unchanged; `docs/website/` (excluded from the published pages) holds only t
 - `docs/api/reference.html` renders `openapi.yaml` with Redoc.
 - `docs/website/overrides/main.html` adds Open Graph tags, so shared links preview with
   `docs/assets/brand/engi-social-banner.png`. Brand images and the intro video live in `docs/assets/brand/`.
-- `.github/workflows/docs.yml` builds and deploys the site to GitHub Pages. For now it runs only
-  when started by hand (Actions → docs → Run workflow); it does not run on pushes or pull requests.
+- `.github/workflows/docs.yml` builds the site in strict mode on every pull request and push to `main`
+  that touches `docs/`, so a broken page fails CI.
+- Publishing lives in the [engi-hq/docs](https://github.com/engi-hq/docs) repository: its workflow
+  checks out this repository, builds the same pages and deploys them to GitHub Pages. It runs on its
+  own schedule and when started by hand. If the `DOCS_DISPATCH_TOKEN` secret is set here (a
+  fine-grained token with *Actions: write* on `engi-hq/docs`), a docs change on `main` triggers it at once.
 
 ## 13.7a Profiling memory
 
