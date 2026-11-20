@@ -1,0 +1,39 @@
+# Build output
+/bin/
+/dist/
+*.test
+*.out
+coverage.*
+
+# Local config and data (never commit secrets)
+/engi.yaml
+/*.db
+/*.db-*
+/data/
+.env
+.env.*
+
+# Tooling
+.idea/
+.vscode/
+.DS_Store
+graphify-out/cache/
+
+# Editor build copied for go:embed (see `make web`); web/ has its own .gitignore
+/internal/adapter/http/ui/dist/
+
+# .NET build output, anywhere (the SDK in sdk/dotnet, conformance and example plugins)
+bin/
+obj/
+*.user
+.vs/
+TestResults/
+*.nupkg
+/sdk/dotnet/dist/
+
+# Docs site build output and toolchain (see `make docs-site`)
+/site/
+/.venv-docs/
+
+# Local working trackers (not part of the project)
+DELETEME*.md

@@ -1,0 +1,137 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/engi-hq/engi
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - revive
+    - gosec
+    - errorlint
+    - wrapcheck
+    - contextcheck
+    - unparam
+    - misspell
+    - gocritic
+    - depguard
+    - ineffassign
+    - unused
+  settings:
+    revive:
+      rules:
+        - name: exported
+        - name: package-comments
+        - name: error-return
+        - name: error-naming
+        - name: error-strings
+        - name: var-naming
+        - name: receiver-naming
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: indent-error-flow
+        - name: unexported-return
+    wrapcheck:
+      # Errors from these packages are already descriptive or are wrapped by callers.
+      ignore-sigs:
+        - .Errorf(
+        - errors.New(
+        - errors.Join(
+        - .Wrap(
+      ignore-package-globs:
+        - github.com/engi-hq/engi/*
+    gocritic:
+      enabled-tags: [diagnostic, style, performance]
+      disabled-checks:
+        - hugeParam
+        - whyNoLint
+        - ptrToRefParam
+        - rangeValCopy
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment
+        - shadow
+    depguard:
+      rules:
+        domain:
+          files:
+            - "**/internal/domain/**"
+            - "!$test"
+          allow:
+            - $gostd
+        service:
+          files:
+            - "**/internal/service/**"
+            - "!$test"
+          deny:
+            - pkg: github.com/engi-hq/engi/internal/adapter
+              desc: services depend on ports, never on adapters
+            - pkg: github.com/engi-hq/engi/internal/app
+              desc: only cmd may depend on the composition root
+            - pkg: net/http
+              desc: services must not use net/http
+            - pkg: database/sql
+              desc: services must not use SQL drivers
+        port:
+          files:
+            - "**/internal/port/**"
+          deny:
+            - pkg: github.com/engi-hq/engi/internal/adapter
+              desc: ports must not depend on adapters
+            - pkg: github.com/engi-hq/engi/internal/service
+              desc: ports must not depend on services
+        adapter:
+          files:
+            - "**/internal/adapter/**"
+            - "!$test"
+          list-mode: lax
+          allow:
+            - github.com/engi-hq/engi/internal/adapter/pgdb
+            - github.com/engi-hq/engi/internal/adapter/sqlitedb
+            - github.com/engi-hq/engi/internal/adapter/jsoncodec
+            - github.com/engi-hq/engi/internal/adapter/plugin/pluginnode
+          deny:
+            - pkg: github.com/engi-hq/engi/internal/app
+              desc: adapters must not depend on the composition root
+            - pkg: github.com/engi-hq/engi/internal/adapter
+              desc: one port implementation never imports another; only the shared infrastructure packages in the allow list are permitted
+        sdk:
+          files:
+            - "**/pkg/**"
+          deny:
+            - pkg: github.com/engi-hq/engi/internal
+              desc: the public SDK must not import internal packages
+        node:
+          files:
+            - "**/internal/node/**"
+          deny:
+            - pkg: github.com/engi-hq/engi/internal/service
+              desc: nodes depend only on the node SDK contract
+            - pkg: github.com/engi-hq/engi/internal/adapter
+              desc: nodes depend only on the node SDK contract
+  exclusions:
+    presets:
+      - comments
+      - std-error-handling
+    rules:
+      - path: _test\.go
+        linters:
+          - gosec
+          - wrapcheck
+          - unparam
+          - errcheck
+          - revive

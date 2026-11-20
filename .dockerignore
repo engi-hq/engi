@@ -1,0 +1,14 @@
+.git
+bin
+dist
+*.db
+*.db-shm
+*.db-wal
+graphify-out
+docs
+examples
+web/node_modules
+web/dist
+internal/adapter/http/ui/dist
+deploy
+**/*_test.go
