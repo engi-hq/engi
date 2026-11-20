@@ -221,7 +221,13 @@ func TestOAuth2StateRejections(t *testing.T) {
 	u, _ := url.Parse(authURL)
 	state := u.Query().Get("state")
 
-	for name, st := range map[string]string{"garbage": "nope", "tampered": state[:len(state)-2] + "AA", "empty": ""} {
+	// Flip one character so the tampered state always differs from the real one.
+	mid, flip := len(state)/2, byte('A')
+	if state[mid] == flip {
+		flip = 'B'
+	}
+	tampered := state[:mid] + string(flip) + state[mid+1:]
+	for name, st := range map[string]string{"garbage": "nope", "tampered": tampered, "empty": ""} {
 		if _, err := e.svc.CompleteAuthorization(ctx, st, "c"); !errors.Is(err, credential.ErrInvalidState) {
 			t.Errorf("%s: err = %v", name, err)
 		}
